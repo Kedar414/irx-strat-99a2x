@@ -124,7 +124,6 @@
                     </table>
                 </div>
 
-                <!-- ULOŽENÍ A NAČTENÍ SESTAVY PILOTŮ -->
                 <div class="mt-6 p-4 bg-slate-950 rounded-lg border border-slate-800 flex flex-col sm:flex-row items-center gap-4">
                     <div class="w-full sm:w-2/3">
                         <input type="text" id="lineup-save-name" placeholder="Vlastní název sestavy (nechte prázdné pro auto-pojmenování)" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
@@ -141,8 +140,6 @@
                 </div>
                 
                 <div id="lineups-container" class="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1"></div>
-                <!-- KONEC SESTAVY -->
-
                 <div class="mt-10 pt-6 border-t border-slate-800">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
@@ -196,7 +193,6 @@
             </div>
         </section>
 
-        <!-- SETUP MODAL (TOP-DOWN CAR VIEW) -->
         <div id="car-setup-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
             <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full p-4 md:p-6 shadow-[0_0_50px_rgba(0,0,0,0.6)] relative my-4">
                 <button onclick="zavriCarSetupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-red-400 text-3xl font-semibold transition-colors z-10">&times;</button>
@@ -205,7 +201,6 @@
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-                    <!-- LEVÁ STRANA -->
                     <div class="space-y-6 flex flex-col justify-between z-10">
                         <div class="bg-slate-950 border border-slate-700 p-4 rounded-xl shadow-inner relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
@@ -227,7 +222,6 @@
                         </div>
                     </div>
 
-                    <!-- STŘED (AUTO) -->
                     <div class="flex flex-col items-center justify-between space-y-4 relative py-2">
                         <div class="bg-slate-950 border border-slate-700 p-3 rounded-lg text-center shadow-lg w-full z-10">
                             <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest block">Anti-Roll Bar (Vpředu)</span>
@@ -257,7 +251,6 @@
                         </div>
                     </div>
 
-                    <!-- PRAVÁ STRANA -->
                     <div class="space-y-6 flex flex-col justify-between z-10">
                         <div class="bg-slate-950 border border-slate-700 p-4 rounded-xl shadow-inner relative overflow-hidden">
                             <div class="absolute top-0 right-0 w-1 h-full bg-blue-500"></div>
@@ -292,7 +285,6 @@
             </div>
         </div>
 
-        <!-- DB MODAL -->
         <div id="db-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-5xl w-full p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
                 <button onclick="zavriDbModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200 text-2xl font-semibold transition-colors">&times;</button>
@@ -341,7 +333,6 @@
             </div>
         </div>
 
-        <!-- REPORT MODAL -->
         <div id="report-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 relative">
                 <button onclick="zavriReportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200 text-2xl font-semibold transition-colors">&times;</button>
@@ -351,7 +342,6 @@
             </div>
         </div>
 
-        <!-- TRACK INFO / NOTES MODAL -->
         <div id="track-info-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto p-6 shadow-2xl relative">
                 <button onclick="zavriTrackInfoModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200 text-2xl font-semibold transition-colors">&times;</button>
@@ -371,8 +361,7 @@
                     <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl shadow-inner">
                         <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-4">📍 Specifika zatáček</h3>
                         <div id="modal-track-corners-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            <!-- JS vygeneruje inputy pro zatacky -->
-                        </div>
+                            </div>
                         <div id="modal-track-corners-empty" class="hidden text-xs text-slate-500 italic">V databázi trati nebyl nastaven počet zatáček. Můžete upravit v nastavení DB.</div>
                     </div>
 
@@ -1334,7 +1323,9 @@ function prepocitejLiveZavodStrategii() {
         if (normal_stops > 0) {
             let last_pit_time = pitstops_list[normal_stops - 1].c_pit_total;
             let target_stints = normal_stops; 
-            let max_fuel_for_eco = stav.palivo_v_aute + ((target_stints - 1) * stav.auto_data.nadrz_l) - 1.5;
+            
+            // --- OPRAVA ROZPOČTU PALIVA PRO ECO ---
+            let max_fuel_for_eco = (stav.palivo_v_aute - 1.5) + ((target_stints - 1) * (stav.auto_data.nadrz_l - 1.5));
             let req_avg_fuel = max_fuel_for_eco / target_laps_rem;
 
             // DYNAMICKÝ ECO TARGET: Najdeme kolo, které stačí k vynechání pitu
@@ -1343,12 +1334,10 @@ function prepocitejLiveZavodStrategii() {
             
             let candidates = validni_kola.filter(l => l.spotreba <= req_avg_fuel);
             if (candidates.length > 0) {
-                // Mám v telemetrii kolo(a), které má dostatečně malou spotřebu. Vyberu to nejrychlejší!
                 let best_lap = candidates.reduce((best, lap) => (lap.cas < best.cas ? lap : best));
                 eco_spotreba = best_lap.spotreba;
                 eco_cas = best_lap.cas;
             } else {
-                // Nemám takové kolo, ale můžu mít lepší spotřebu než je v setupu
                 let best_live_eco = validni_kola.reduce((best, lap) => (lap.spotreba < best.spotreba && lap.spotreba > 0 ? lap : best), {spotreba: 999, cas: 999});
                 if (best_live_eco.spotreba <= eco_spotreba) {
                     eco_spotreba = best_live_eco.spotreba;
@@ -1361,28 +1350,38 @@ function prepocitejLiveZavodStrategii() {
             } else if (req_avg_fuel < eco_spotreba) {
                 ecoHTML = generateEcoFailedCard(`Nemožné. Pro vynechání zastávky musíte srazit průměr na ${req_avg_fuel.toFixed(3)} L/kolo, ale vaše aktuální/reálné ECO minimum je ${eco_spotreba.toFixed(3)} L/kolo. Nádrž tolik nevydrží.`);
             } else {
-                // SPRAVEDLIVÉ ROZDĚLENÍ A ZASOUVÁNÍ NA KONEC ZÁVODU (BACKLOADING)
+                
                 let total_eco_laps = Math.ceil((target_laps_rem * akt_prum_spotreba - max_fuel_for_eco) / (akt_prum_spotreba - eco_spotreba));
                 if (total_eco_laps > target_laps_rem) total_eco_laps = target_laps_rem;
 
+                // --- OPRAVA DISTRIBUCE KOL DO STINTŮ ---
                 let laps_per_stint = [];
-                let rem_laps = target_laps_rem;
+                let remaining_laps = target_laps_rem;
+                
                 for(let i=0; i<target_stints; i++) {
-                    let s_laps = Math.ceil(rem_laps / (target_stints - i));
+                    let cap = (i === 0) ? stav.palivo_v_aute : stav.auto_data.nadrz_l;
+                    let max_possible = Math.floor((cap - 1.5) / eco_spotreba);
+                    
+                    let target_s_laps = Math.ceil(remaining_laps / (target_stints - i));
+                    let future_cap_laps = (target_stints - 1 - i) * Math.floor((stav.auto_data.nadrz_l - 1.5) / eco_spotreba);
+                    
+                    let s_laps = Math.min(target_s_laps, max_possible);
+                    if (remaining_laps - s_laps > future_cap_laps) {
+                        s_laps = remaining_laps - future_cap_laps;
+                    }
+                    
+                    s_laps = Math.max(0, Math.min(s_laps, max_possible));
                     laps_per_stint.push({ total: s_laps, eco: 0, norm: s_laps });
-                    rem_laps -= s_laps;
+                    remaining_laps -= s_laps;
                 }
 
-                let cur_laps_done = stav.posledni_zapsane_kolo - stav.kolo_posledniho_pitu;
                 let buffer_laps = 3; // Reakční doba kol
-
                 let remaining_eco = total_eco_laps;
 
                 // Fáze 1: Zamezení přetečení nádrže v každém stintu zprava doleva
                 for(let i = target_stints - 1; i >= 0; i--) {
                     let st = laps_per_stint[i];
-                    let tank_limit = stav.auto_data.nadrz_l - 1.5;
-                    let avail_f = (i === 0) ? stav.palivo_v_aute - 1.5 : tank_limit;
+                    let avail_f = (i === 0) ? stav.palivo_v_aute - 1.5 : stav.auto_data.nadrz_l - 1.5;
                     
                     let norm_fuel = st.norm * akt_prum_spotreba;
                     if (norm_fuel > avail_f) {
@@ -1397,28 +1396,31 @@ function prepocitejLiveZavodStrategii() {
                 
                 if (remaining_eco < 0) remaining_eco = 0;
 
-                // Fáze 2: Distribuce zbývajících ECO kol (tlak na poslední stinty)
+                // Fáze 2: Distribuce zbývajících ECO kol (s opravenou mezerou na reakci)
                 for(let i = target_stints - 1; i >= 0; i--) {
                     if (remaining_eco <= 0) break;
                     let st = laps_per_stint[i];
                     
-                    let max_add = st.norm;
+                    let max_eco_allowed = st.total;
                     if (i === 0) {
-                        let available_laps = Math.max(0, st.total - cur_laps_done - buffer_laps);
-                        max_add = Math.min(st.norm, Math.max(0, available_laps - st.eco));
+                        max_eco_allowed = Math.max(0, st.total - buffer_laps);
                     }
 
+                    let max_add = Math.max(0, Math.min(st.norm, max_eco_allowed - st.eco));
                     let add = Math.min(max_add, remaining_eco);
                     st.eco += add;
                     st.norm -= add;
                     remaining_eco -= add;
                 }
 
-                // Fallback, pokud kvůli bufferu zbyly kola
+                // Fallback, pokud i přesto zůstala ECO kola
                 if (remaining_eco > 0) {
-                    let st = laps_per_stint[0];
-                    let add = Math.min(st.norm, remaining_eco);
-                    st.eco += add; st.norm -= add; remaining_eco -= add;
+                    for(let i = target_stints - 1; i >= 0; i--) {
+                        if (remaining_eco <= 0) break;
+                        let st = laps_per_stint[i];
+                        let add = Math.min(st.norm, remaining_eco);
+                        st.eco += add; st.norm -= add; remaining_eco -= add;
+                    }
                 }
 
                 // Simulace pro přesné UI čísla
@@ -1438,11 +1440,12 @@ function prepocitejLiveZavodStrategii() {
                         for(let j=i+1; j<target_stints; j++) { f_future += (laps_per_stint[j].eco * eco_spotreba) + (laps_per_stint[j].norm * akt_prum_spotreba); }
                         f_future += 1.5; // Rezerva pro dojezd
                         
-                        fill = Math.min(stav.auto_data.nadrz_l - f_end, Math.max(0, f_future - f_end));
+                        let max_fill = stav.auto_data.nadrz_l - f_end;
+                        fill = Math.max(0, Math.min(max_fill, f_future - f_end));
                         cur_f = f_end + fill;
                     }
 
-                    stints_arr.push({ eco: st.eco, norm: st.norm, end_fuel: Math.max(1.5, f_end), fill: fill });
+                    stints_arr.push({ eco: st.eco, norm: st.norm, end_fuel: Math.max(0, f_end), fill: fill });
                 }
 
                 let eco_timeline_html = '<div class="space-y-2">';
@@ -1513,29 +1516,4 @@ function ukonciZavod() {
 
 function generovatPDFReport() {
     zavriReportModal(); let poznmky = document.getElementById('report-notes').value;
-    let reportDiv = document.createElement('div'); reportDiv.style.padding = '30px'; reportDiv.style.fontFamily = 'Arial, sans-serif'; reportDiv.style.color = '#000'; reportDiv.style.background = '#fff';
-    let d = new Date(); let dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    let filenameSafe = stav.trat_jmeno.replace(/\s+/g, '_'); let pdfFilename = `${filenameSafe}_${dateStr}.pdf`;
-    
-    let html = `<h1 style="font-size:24px; font-weight:bold; color:#1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px;">Report závodu - ${stav.trat_jmeno} (${dateStr})</h1>`;
-    if (poznmky.trim() !== '') { html += `<h2 style="font-size:18px; font-weight:bold; margin-top:20px; border-bottom:1px solid #ccc; padding-bottom:5px;">Poznámky k závodu</h2><p style="font-size:12px; white-space: pre-wrap; margin-top:10px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px;">${poznmky}</p>`; }
-    html += `<h2 style="font-size:18px; font-weight:bold; margin-top:20px; border-bottom:1px solid #ccc; padding-bottom:5px;">Průměrné časy a incidenty pilotů</h2><table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: left;"><tr style="background:#f1f5f9;"><th style="padding:8px; border:1px solid #cbd5e1;">Pilot</th><th style="padding:8px; border:1px solid #cbd5e1;">Ø Čas kola (čistý)</th><th style="padding:8px; border:1px solid #cbd5e1;">Počet Incidentů</th></tr>`;
-    
-    let stats = {}; stav.jezdci.forEach(j => stats[j.jmeno] = { laps: [], avg: 0, incidents: 0 });
-    stav.historie_kol.forEach(k => { if (!stats[k.pilot]) stats[k.pilot] = { laps: [], avg: 0, incidents: 0 }; if (k.is_flying_lap) stats[k.pilot].laps.push(k.cas); });
-    Object.keys(stats).forEach(p => { let s = stats[p]; if (s.laps.length > 0) s.avg = s.laps.reduce((a,b) => a + b, 0) / s.laps.length; });
-    stav.historie_kol.forEach(k => { let s = stats[k.pilot]; if (k.crash) s.incidents++; else if (k.is_flying_lap && s.avg > 0 && k.cas > s.avg + 10) s.incidents++; });
-    
-    Object.keys(stats).forEach(p => { let s = stats[p]; let avgStr = s.avg > 0 ? formatujCasKola(s.avg) : "N/A"; let incColor = s.incidents > 0 ? "red" : "green"; html += `<tr><td style="padding:8px; border:1px solid #cbd5e1; font-weight:bold;">${p}</td><td style="padding:8px; border:1px solid #cbd5e1;">${avgStr}</td><td style="padding:8px; border:1px solid #cbd5e1; color:${incColor}; font-weight:bold;">${s.incidents}</td></tr>`; });
-    html += `</table><h2 style="font-size:18px; font-weight:bold; margin-top:30px; border-bottom:1px solid #ccc; padding-bottom:5px;">Zastávky v boxech (Chronologicky)</h2><table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: left;"><tr style="background:#f1f5f9;"><th style="padding:8px; border:1px solid #cbd5e1;">Zastávka</th><th style="padding:8px; border:1px solid #cbd5e1;">Kolo (In-lap)</th><th style="padding:8px; border:1px solid #cbd5e1;">Pilot stintu</th><th style="padding:8px; border:1px solid #cbd5e1;">Kol ve stintu</th><th style="padding:8px; border:1px solid #cbd5e1;">Natankováno (L)</th><th style="padding:8px; border:1px solid #cbd5e1;">Přezuto?</th></tr>`;
-    
-    if (stav.report_pitstopy.length === 0) html += `<tr><td colspan="6" style="padding:8px; border:1px solid #cbd5e1; text-align:center;">Žádné zastávky v boxech nebyly zaznamenány.</td></tr>`;
-    else { stav.report_pitstopy.forEach((ps, idx) => { let pneuStr = ps.pneu ? "ANO" : "NE"; let pneuColor = ps.pneu ? "green" : "#555"; html += `<tr><td style="padding:8px; border:1px solid #cbd5e1; font-weight:bold;">#${idx+1}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.kolo}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.pilot}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.odjeto_kol}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.natankovano.toFixed(2)} L</td><td style="padding:8px; border:1px solid #cbd5e1; color:${pneuColor}; font-weight:bold;">${pneuStr}</td></tr>`; }); }
-    html += `</table>`;
-    
-    reportDiv.innerHTML = html;
-    html2pdf().set({ margin: 10, filename: pdfFilename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(reportDiv).save();
-}
-</script>
-</body>
-</html>
+    let reportDiv = document.createElement('div'); reportDiv.style.padding = '30px'; reportDiv.style.fontFamily = 'Arial, sans-serif'; reportDiv.style.color = '#000'; reportDiv.style.
