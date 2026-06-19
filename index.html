@@ -417,16 +417,22 @@
                             </div>
 
                             <div class="grid grid-cols-1 gap-3">
-                                <div><label class="block text-[11px] font-semibold text-slate-400 mb-1">Číslo kola</label><input id="live-lap-num" type="number" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-slate-200 font-bold"></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Číslo kola</label>
+                                    <input id="live-lap-num" type="number" onkeypress="if(event.key === 'Enter') zapisLiveKolo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-slate-200 font-bold">
+                                </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-400 mb-1">Čas kola (M : SS : ccc)</label>
                                     <div class="flex gap-1">
-                                        <input id="live-lap-min" type="number" placeholder="M" min="0" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
-                                        <input id="live-lap-sec" type="number" placeholder="SS" min="0" max="59" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
-                                        <input id="live-lap-ms" type="number" placeholder="ccc" min="0" max="999" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
+                                        <input id="live-lap-min" type="number" placeholder="M" min="0" onkeypress="if(event.key === 'Enter') zapisLiveKolo()" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
+                                        <input id="live-lap-sec" type="number" placeholder="SS" min="0" max="59" onkeypress="if(event.key === 'Enter') zapisLiveKolo()" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
+                                        <input id="live-lap-ms" type="number" placeholder="ccc" min="0" max="999" onkeypress="if(event.key === 'Enter') zapisLiveKolo()" class="w-1/3 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-center text-slate-200 font-semibold font-mono text-sm">
                                     </div>
                                 </div>
-                                <div><label class="block text-[11px] font-semibold text-slate-400 mb-1">Spotřeba (L)</label><input id="live-lap-fuel" type="number" step="0.001" placeholder="3.41" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-slate-200 font-mono"></div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Spotřeba (L)</label>
+                                    <input id="live-lap-fuel" type="number" step="0.001" placeholder="3.41" onkeypress="if(event.key === 'Enter') zapisLiveKolo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-slate-200 font-mono">
+                                </div>
                             </div>
 
                             <div class="flex flex-col gap-2 my-3">
@@ -1324,163 +1330,172 @@ function prepocitejLiveZavodStrategii() {
             let last_pit_time = pitstops_list[normal_stops - 1].c_pit_total;
             let target_stints = normal_stops; 
             
-            // --- OPRAVA ROZPOČTU PALIVA PRO ECO ---
             let max_fuel_for_eco = (stav.palivo_v_aute - 1.5) + ((target_stints - 1) * (stav.auto_data.nadrz_l - 1.5));
-            let req_avg_fuel = max_fuel_for_eco / target_laps_rem;
-
-            // DYNAMICKÝ ECO TARGET: Najdeme kolo, které stačí k vynechání pitu
-            let eco_cas = aktJezdec.cas_eco; 
-            let eco_spotreba = aktJezdec.spotreba_eco;
             
-            let candidates = validni_kola.filter(l => l.spotreba <= req_avg_fuel);
-            if (candidates.length > 0) {
-                let best_lap = candidates.reduce((best, lap) => (lap.cas < best.cas ? lap : best));
-                eco_spotreba = best_lap.spotreba;
-                eco_cas = best_lap.cas;
-            } else {
-                let best_live_eco = validni_kola.reduce((best, lap) => (lap.spotreba < best.spotreba && lap.spotreba > 0 ? lap : best), {spotreba: 999, cas: 999});
-                if (best_live_eco.spotreba <= eco_spotreba) {
-                    eco_spotreba = best_live_eco.spotreba;
-                    eco_cas = best_live_eco.cas;
+            let stints_data = [];
+            let remaining_laps = target_laps_rem;
+            
+            // PŘÍPRAVA: Získání unikátních dat pro každého přiřazeného pilota v budoucích stintech
+            for(let i=0; i<target_stints; i++) {
+                let st_idx_real = stav.idx_aktualniho_jezdce + i;
+                let drv_name = (st_idx_real < stav.stinty.length) ? stav.stinty[st_idx_real].jezdec_jmeno : stav.stinty[stav.stinty.length-1].jezdec_jmeno;
+                let d = stav.jezdci.find(j => j.jmeno === drv_name) || stav.jezdci[0];
+                
+                // Základní papírové hodnoty pilota
+                let d_n_spotreba = d.spotreba;
+                let d_n_cas = d.cas;
+                let d_e_spotreba = d.spotreba_eco;
+                let d_e_cas = d.cas_eco;
+                
+                // Telemetrické překrytí (pokud už pilot v závodě jel čistá kola)
+                let driver_laps = validni_kola.filter(l => l.pilot === d.jmeno);
+                if (driver_laps.length >= 3) {
+                    d_n_spotreba = driver_laps.reduce((sum, l) => sum + l.spotreba, 0) / driver_laps.length;
+                    d_n_cas = driver_laps.reduce((sum, l) => sum + l.cas, 0) / driver_laps.length;
                 }
+                
+                let driver_eco_laps = driver_laps.filter(l => l.spotreba < d_n_spotreba * 0.98);
+                if (driver_eco_laps.length > 0) {
+                     let best_live_eco = driver_eco_laps.reduce((best, lap) => (lap.spotreba < best.spotreba ? lap : best));
+                     if (best_live_eco.spotreba <= d_e_spotreba) {
+                         d_e_spotreba = best_live_eco.spotreba;
+                         d_e_cas = best_live_eco.cas;
+                     }
+                }
+
+                // Kalkulace kol pro tento konkrétní stint
+                let cap = (i === 0) ? stav.palivo_v_aute : stav.auto_data.nadrz_l;
+                let max_possible = Math.floor((cap - 1.5) / d_e_spotreba);
+                let target_s_laps = Math.ceil(remaining_laps / (target_stints - i));
+                
+                // Zjištění kapacity budoucích stintů podle jejich unikátních jezdců
+                let future_cap_laps = 0;
+                for(let j = i + 1; j < target_stints; j++) {
+                     let j_idx_real = stav.idx_aktualniho_jezdce + j;
+                     let j_drv_name = (j_idx_real < stav.stinty.length) ? stav.stinty[j_idx_real].jezdec_jmeno : stav.stinty[stav.stinty.length-1].jezdec_jmeno;
+                     let j_d = stav.jezdci.find(jj => jj.jmeno === j_drv_name) || stav.jezdci[0];
+                     future_cap_laps += Math.floor((stav.auto_data.nadrz_l - 1.5) / j_d.spotreba_eco);
+                }
+                
+                let s_laps = Math.min(target_s_laps, max_possible);
+                if (remaining_laps - s_laps > future_cap_laps) s_laps = remaining_laps - future_cap_laps;
+                s_laps = Math.max(0, Math.min(s_laps, max_possible));
+                
+                stints_data.push({
+                    driver: d.jmeno, total: s_laps, norm: s_laps, eco: 0,
+                    n_spotreba: d_n_spotreba, n_cas: d_n_cas, e_spotreba: d_e_spotreba, e_cas: d_e_cas
+                });
+                remaining_laps -= s_laps;
             }
 
-            if (req_avg_fuel >= akt_prum_spotreba) {
-                ecoHTML = generateEcoFailedCard("Paliva na vynechání zastávky máte dostatek i při plném tempu. Zastávku není třeba řešit přes ECO režim, dojedete to bez problémů.");
-            } else if (req_avg_fuel < eco_spotreba) {
-                ecoHTML = generateEcoFailedCard(`Nemožné. Pro vynechání zastávky musíte srazit průměr na ${req_avg_fuel.toFixed(3)} L/kolo, ale vaše aktuální/reálné ECO minimum je ${eco_spotreba.toFixed(3)} L/kolo. Nádrž tolik nevydrží.`);
+            let assigned_laps = stints_data.reduce((sum, st) => sum + st.total, 0);
+            let total_base_fuel_need = stints_data.reduce((sum, st) => sum + (st.total * st.n_spotreba), 0);
+
+            if (assigned_laps < target_laps_rem) {
+                ecoHTML = generateEcoFailedCard(`Nemožné. I při maximálním ECO tempu všech přiřazených pilotů nádrž nevydrží na vynechání zastávky.`);
+            } else if (total_base_fuel_need <= max_fuel_for_eco) {
+                ecoHTML = generateEcoFailedCard("Paliva na vynechání zastávky máte dostatek i při plném tempu všech pilotů. Dojedete to bez nutnosti šetřit.");
             } else {
+                let get_current_fuel_need = () => stints_data.reduce((sum, st) => sum + (st.norm * st.n_spotreba) + (st.eco * st.e_spotreba), 0);
                 
-                let total_eco_laps = Math.ceil((target_laps_rem * akt_prum_spotreba - max_fuel_for_eco) / (akt_prum_spotreba - eco_spotreba));
-                if (total_eco_laps > target_laps_rem) total_eco_laps = target_laps_rem;
-
-                // --- OPRAVA DISTRIBUCE KOL DO STINTŮ ---
-                let laps_per_stint = [];
-                let remaining_laps = target_laps_rem;
-                
-                for(let i=0; i<target_stints; i++) {
-                    let cap = (i === 0) ? stav.palivo_v_aute : stav.auto_data.nadrz_l;
-                    let max_possible = Math.floor((cap - 1.5) / eco_spotreba);
-                    
-                    let target_s_laps = Math.ceil(remaining_laps / (target_stints - i));
-                    let future_cap_laps = (target_stints - 1 - i) * Math.floor((stav.auto_data.nadrz_l - 1.5) / eco_spotreba);
-                    
-                    let s_laps = Math.min(target_s_laps, max_possible);
-                    if (remaining_laps - s_laps > future_cap_laps) {
-                        s_laps = remaining_laps - future_cap_laps;
-                    }
-                    
-                    s_laps = Math.max(0, Math.min(s_laps, max_possible));
-                    laps_per_stint.push({ total: s_laps, eco: 0, norm: s_laps });
-                    remaining_laps -= s_laps;
-                }
-
-                let buffer_laps = 3; // Reakční doba kol
-                let remaining_eco = total_eco_laps;
-
-                // Fáze 1: Zamezení přetečení nádrže v každém stintu zprava doleva
-                for(let i = target_stints - 1; i >= 0; i--) {
-                    let st = laps_per_stint[i];
+                // Fáze 1: Ochrana proti lokálnímu přetečení nádrže ve stintu
+                for (let i = target_stints - 1; i >= 0; i--) {
+                    let st = stints_data[i];
                     let avail_f = (i === 0) ? stav.palivo_v_aute - 1.5 : stav.auto_data.nadrz_l - 1.5;
-                    
-                    let norm_fuel = st.norm * akt_prum_spotreba;
-                    if (norm_fuel > avail_f) {
-                        let overflow = norm_fuel - avail_f;
-                        let req_eco = Math.ceil(overflow / (akt_prum_spotreba - eco_spotreba));
-                        if (req_eco > st.norm) req_eco = st.norm;
-                        st.eco += req_eco;
-                        st.norm -= req_eco;
-                        remaining_eco -= req_eco;
+                    while (st.norm * st.n_spotreba + st.eco * st.e_spotreba > avail_f && st.norm > 0) {
+                        st.norm--; st.eco++;
                     }
                 }
                 
-                if (remaining_eco < 0) remaining_eco = 0;
-
-                // Fáze 2: Distribuce zbývajících ECO kol (s opravenou mezerou na reakci)
-                for(let i = target_stints - 1; i >= 0; i--) {
-                    if (remaining_eco <= 0) break;
-                    let st = laps_per_stint[i];
-                    
-                    let max_eco_allowed = st.total;
-                    if (i === 0) {
-                        max_eco_allowed = Math.max(0, st.total - buffer_laps);
-                    }
-
-                    let max_add = Math.max(0, Math.min(st.norm, max_eco_allowed - st.eco));
-                    let add = Math.min(max_add, remaining_eco);
-                    st.eco += add;
-                    st.norm -= add;
-                    remaining_eco -= add;
-                }
-
-                // Fallback, pokud i přesto zůstala ECO kola
-                if (remaining_eco > 0) {
-                    for(let i = target_stints - 1; i >= 0; i--) {
-                        if (remaining_eco <= 0) break;
-                        let st = laps_per_stint[i];
-                        let add = Math.min(st.norm, remaining_eco);
-                        st.eco += add; st.norm -= add; remaining_eco -= add;
-                    }
-                }
-
-                // Simulace pro přesné UI čísla
-                let cur_f = stav.palivo_v_aute;
-                let stints_arr = [];
-
-                for(let i=0; i < target_stints; i++) {
-                    let st = laps_per_stint[i];
-                    let isLast = (i === target_stints - 1);
-                    
-                    let f_burn = (st.eco * eco_spotreba) + (st.norm * akt_prum_spotreba);
-                    let f_end = cur_f - f_burn;
-                    
-                    let fill = 0;
-                    if (!isLast) {
-                        let f_future = 0;
-                        for(let j=i+1; j<target_stints; j++) { f_future += (laps_per_stint[j].eco * eco_spotreba) + (laps_per_stint[j].norm * akt_prum_spotreba); }
-                        f_future += 1.5; // Rezerva pro dojezd
+                // Fáze 2: Globální splnění rozpočtu paliva (s ohledem na reakční okno)
+                let buffer_laps = 3; 
+                while (get_current_fuel_need() > max_fuel_for_eco) {
+                    let changed = false;
+                    for (let i = target_stints - 1; i >= 0; i--) {
+                        let st = stints_data[i];
+                        let max_eco_allowed = (i === 0) ? Math.max(0, st.total - buffer_laps) : st.total;
                         
-                        let max_fill = stav.auto_data.nadrz_l - f_end;
-                        fill = Math.max(0, Math.min(max_fill, f_future - f_end));
-                        cur_f = f_end + fill;
+                        if (st.eco < max_eco_allowed && st.norm > 0) {
+                            st.norm--; st.eco++; changed = true;
+                            if (get_current_fuel_need() <= max_fuel_for_eco) break;
+                        }
                     }
-
-                    stints_arr.push({ eco: st.eco, norm: st.norm, end_fuel: Math.max(0, f_end), fill: fill });
+                    if (!changed) {
+                        let forced = false;
+                        for (let i = target_stints - 1; i >= 0; i--) {
+                            let st = stints_data[i];
+                            if (st.norm > 0) { st.norm--; st.eco++; forced = true; if (get_current_fuel_need() <= max_fuel_for_eco) break; }
+                        }
+                        if (!forced) break; 
+                    }
                 }
 
-                let eco_timeline_html = '<div class="space-y-2">';
-                let start_stint_idx = stav.idx_aktualniho_jezdce + 1;
-                stints_arr.forEach((s, idx) => {
-                    let isNaTrati = (idx === 0) ? " <span class='text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded'>NA TRATI</span>" : "";
-                    let lapDesc = [];
-                    if (s.eco > 0) lapDesc.push(`<span class="text-emerald-400 font-bold">${s.eco} kol ECO</span>`);
-                    if (s.norm > 0) lapDesc.push(`<span class="text-slate-300">${s.norm} kol NAPLNO</span>`);
-                    if (s.eco === 0 && s.norm === 0) lapDesc.push(`<span class="text-slate-500">0 kol</span>`);
-                    
-                    eco_timeline_html += `
-                    <div class="bg-slate-900 border ${s.eco > 0 ? 'border-emerald-500/50' : 'border-slate-700'} rounded-lg p-2.5 flex justify-between items-center">
-                        <div>
-                            <span class="text-[10px] text-blue-400 font-bold uppercase">Stint ${start_stint_idx + idx}${isNaTrati}</span>
-                            <span class="block text-sm font-mono mt-1">${lapDesc.join(' + ')}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Zůstatek v cíli</span>
-                            <span class="text-sm font-mono font-bold text-white">${s.end_fuel.toFixed(1)} L</span>
-                        </div>
-                    </div>`;
+                if (get_current_fuel_need() > max_fuel_for_eco) {
+                     ecoHTML = generateEcoFailedCard(`Nemožné. Pro vynechání zastávky by musela být spotřeba pilotů ještě nižší, než jsou jejich povolené ECO limity.`);
+                } else {
+                     let cur_f = stav.palivo_v_aute;
+                     let stints_arr = [];
+                     
+                     for(let i=0; i < target_stints; i++) {
+                         let st = stints_data[i];
+                         let isLast = (i === target_stints - 1);
+                         let f_burn = (st.eco * st.e_spotreba) + (st.norm * st.n_spotreba);
+                         let f_end = cur_f - f_burn;
+                         let fill = 0;
+                         
+                         if (!isLast) {
+                             let f_future = 0;
+                             for(let j=i+1; j<target_stints; j++) { 
+                                 f_future += (stints_data[j].eco * stints_data[j].e_spotreba) + (stints_data[j].norm * stints_data[j].n_spotreba); 
+                             }
+                             f_future += 1.5; 
+                             fill = Math.max(0, Math.min(stav.auto_data.nadrz_l - f_end, f_future - f_end));
+                             cur_f = f_end + fill;
+                         }
+                         stints_arr.push({ driver: st.driver, eco: st.eco, norm: st.norm, end_fuel: Math.max(0, f_end), fill: fill });
+                     }
 
-                    if (s.fill > 0) {
-                        eco_timeline_html += `<div class="text-center text-[10px] text-orange-400 font-bold my-1 border-l-2 border-orange-500/30 ml-4 pl-2 py-0.5 w-max">BOX / TANKOVÁNÍ +${s.fill.toFixed(1)}L</div>`;
-                    }
-                });
-                eco_timeline_html += '</div>';
+                     let eco_timeline_html = '<div class="space-y-2">';
+                     let start_stint_idx = stav.idx_aktualniho_jezdce + 1;
+                     stints_arr.forEach((s, idx) => {
+                         let isNaTrati = (idx === 0) ? " <span class='text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded'>NA TRATI</span>" : "";
+                         let lapDesc = [];
+                         if (s.eco > 0) lapDesc.push(`<span class="text-emerald-400 font-bold">${s.eco} kol ECO</span>`);
+                         if (s.norm > 0) lapDesc.push(`<span class="text-slate-300">${s.norm} kol NAPLNO</span>`);
+                         if (s.eco === 0 && s.norm === 0) lapDesc.push(`<span class="text-slate-500">0 kol</span>`);
+                         
+                         eco_timeline_html += `
+                         <div class="bg-slate-900 border ${s.eco > 0 ? 'border-emerald-500/50' : 'border-slate-700'} rounded-lg p-2.5 flex justify-between items-center">
+                             <div>
+                                 <span class="text-[10px] text-blue-400 font-bold uppercase">Stint ${start_stint_idx + idx} (${s.driver})${isNaTrati}</span>
+                                 <span class="block text-sm font-mono mt-1">${lapDesc.join(' + ')}</span>
+                             </div>
+                             <div class="text-right">
+                                 <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Zůstatek v cíli</span>
+                                 <span class="text-sm font-mono font-bold text-white">${s.end_fuel.toFixed(1)} L</span>
+                             </div>
+                         </div>`;
 
-                let normal_laps = target_laps_rem - total_eco_laps;
-                let time_lost = total_eco_laps * (eco_cas - akt_prum_cas);
-                let time_saved = last_pit_time;
-                let net_saved = time_saved - time_lost;
+                         if (s.fill > 0) {
+                             eco_timeline_html += `<div class="text-center text-[10px] text-orange-400 font-bold my-1 border-l-2 border-orange-500/30 ml-4 pl-2 py-0.5 w-max">BOX / TANKOVÁNÍ +${s.fill.toFixed(1)}L</div>`;
+                         }
+                     });
+                     eco_timeline_html += '</div>';
 
-                ecoHTML = vygenerujEcoKard(target_stints, eco_timeline_html, time_saved, time_lost, net_saved, akt_prum_cas, eco_cas, eco_spotreba, total_eco_laps, normal_laps);
+                     let total_eco_laps = stints_data.reduce((sum, st) => sum + st.eco, 0);
+                     let total_norm_laps = stints_data.reduce((sum, st) => sum + st.norm, 0);
+                     
+                     // Vypočtení průměrných hodnot pro zobrazení v UI "kartě" nahoře
+                     let avg_e_spotreba = total_eco_laps > 0 ? stints_data.reduce((sum, st) => sum + (st.eco * st.e_spotreba), 0) / total_eco_laps : 0;
+                     let avg_e_cas = total_eco_laps > 0 ? stints_data.reduce((sum, st) => sum + (st.eco * st.e_cas), 0) / total_eco_laps : 0;
+                     let avg_n_cas = total_norm_laps > 0 ? stints_data.reduce((sum, st) => sum + (st.norm * st.n_cas), 0) / total_norm_laps : 0;
+
+                     let time_lost = stints_data.reduce((sum, st) => sum + (st.eco * (st.e_cas - st.n_cas)), 0);
+                     let time_saved = last_pit_time;
+                     let net_saved = time_saved - time_lost;
+
+                     ecoHTML = vygenerujEcoKard(target_stints, eco_timeline_html, time_saved, time_lost, net_saved, avg_n_cas, avg_e_cas, avg_e_spotreba, total_eco_laps, total_norm_laps);
+                }
             }
         } else {
             ecoHTML = generateEcoFailedCard("Není naplánována žádná další zastávka, kterou by bylo možné ušetřit.");
