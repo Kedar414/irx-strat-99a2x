@@ -1516,4 +1516,29 @@ function ukonciZavod() {
 
 function generovatPDFReport() {
     zavriReportModal(); let poznmky = document.getElementById('report-notes').value;
-    let reportDiv = document.createElement('div'); reportDiv.style.padding = '30px'; reportDiv.style.fontFamily = 'Arial, sans-serif'; reportDiv.style.color = '#000'; reportDiv.style.
+    let reportDiv = document.createElement('div'); reportDiv.style.padding = '30px'; reportDiv.style.fontFamily = 'Arial, sans-serif'; reportDiv.style.color = '#000'; reportDiv.style.background = '#fff';
+    let d = new Date(); let dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    let filenameSafe = stav.trat_jmeno.replace(/\s+/g, '_'); let pdfFilename = `${filenameSafe}_${dateStr}.pdf`;
+    
+    let html = `<h1 style="font-size:24px; font-weight:bold; color:#1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px;">Report závodu - ${stav.trat_jmeno} (${dateStr})</h1>`;
+    if (poznmky.trim() !== '') { html += `<h2 style="font-size:18px; font-weight:bold; margin-top:20px; border-bottom:1px solid #ccc; padding-bottom:5px;">Poznámky k závodu</h2><p style="font-size:12px; white-space: pre-wrap; margin-top:10px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px;">${poznmky}</p>`; }
+    html += `<h2 style="font-size:18px; font-weight:bold; margin-top:20px; border-bottom:1px solid #ccc; padding-bottom:5px;">Průměrné časy a incidenty pilotů</h2><table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: left;"><tr style="background:#f1f5f9;"><th style="padding:8px; border:1px solid #cbd5e1;">Pilot</th><th style="padding:8px; border:1px solid #cbd5e1;">Ø Čas kola (čistý)</th><th style="padding:8px; border:1px solid #cbd5e1;">Počet Incidentů</th></tr>`;
+    
+    let stats = {}; stav.jezdci.forEach(j => stats[j.jmeno] = { laps: [], avg: 0, incidents: 0 });
+    stav.historie_kol.forEach(k => { if (!stats[k.pilot]) stats[k.pilot] = { laps: [], avg: 0, incidents: 0 }; if (k.is_flying_lap) stats[k.pilot].laps.push(k.cas); });
+    Object.keys(stats).forEach(p => { let s = stats[p]; if (s.laps.length > 0) s.avg = s.laps.reduce((a,b) => a + b, 0) / s.laps.length; });
+    stav.historie_kol.forEach(k => { let s = stats[k.pilot]; if (k.crash) s.incidents++; else if (k.is_flying_lap && s.avg > 0 && k.cas > s.avg + 10) s.incidents++; });
+    
+    Object.keys(stats).forEach(p => { let s = stats[p]; let avgStr = s.avg > 0 ? formatujCasKola(s.avg) : "N/A"; let incColor = s.incidents > 0 ? "red" : "green"; html += `<tr><td style="padding:8px; border:1px solid #cbd5e1; font-weight:bold;">${p}</td><td style="padding:8px; border:1px solid #cbd5e1;">${avgStr}</td><td style="padding:8px; border:1px solid #cbd5e1; color:${incColor}; font-weight:bold;">${s.incidents}</td></tr>`; });
+    html += `</table><h2 style="font-size:18px; font-weight:bold; margin-top:30px; border-bottom:1px solid #ccc; padding-bottom:5px;">Zastávky v boxech (Chronologicky)</h2><table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: left;"><tr style="background:#f1f5f9;"><th style="padding:8px; border:1px solid #cbd5e1;">Zastávka</th><th style="padding:8px; border:1px solid #cbd5e1;">Kolo (In-lap)</th><th style="padding:8px; border:1px solid #cbd5e1;">Pilot stintu</th><th style="padding:8px; border:1px solid #cbd5e1;">Kol ve stintu</th><th style="padding:8px; border:1px solid #cbd5e1;">Natankováno (L)</th><th style="padding:8px; border:1px solid #cbd5e1;">Přezuto?</th></tr>`;
+    
+    if (stav.report_pitstopy.length === 0) html += `<tr><td colspan="6" style="padding:8px; border:1px solid #cbd5e1; text-align:center;">Žádné zastávky v boxech nebyly zaznamenány.</td></tr>`;
+    else { stav.report_pitstopy.forEach((ps, idx) => { let pneuStr = ps.pneu ? "ANO" : "NE"; let pneuColor = ps.pneu ? "green" : "#555"; html += `<tr><td style="padding:8px; border:1px solid #cbd5e1; font-weight:bold;">#${idx+1}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.kolo}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.pilot}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.odjeto_kol}</td><td style="padding:8px; border:1px solid #cbd5e1;">${ps.natankovano.toFixed(2)} L</td><td style="padding:8px; border:1px solid #cbd5e1; color:${pneuColor}; font-weight:bold;">${pneuStr}</td></tr>`; }); }
+    html += `</table>`;
+    
+    reportDiv.innerHTML = html;
+    html2pdf().set({ margin: 10, filename: pdfFilename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(reportDiv).save();
+}
+</script>
+</body>
+</html>
