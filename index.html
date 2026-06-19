@@ -124,14 +124,25 @@
                     </table>
                 </div>
 
+                <!-- ULOŽENÍ A NAČTENÍ SESTAVY PILOTŮ -->
                 <div class="mt-6 p-4 bg-slate-950 rounded-lg border border-slate-800 flex flex-col sm:flex-row items-center gap-4">
-                    <input type="text" id="lineup-save-name" placeholder="Pojmenovat aktuální sestavu (např. Nürburgring Hlavní Tým)" class="w-full sm:w-2/3 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                    <button onclick="ulozitLineupPiloti()" class="w-full sm:w-1/3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2 px-4 rounded text-xs uppercase tracking-wider transition-colors">
-                        💾 Uložit sestavu pilotů
-                    </button>
+                    <div class="w-full sm:w-2/3">
+                        <input type="text" id="lineup-save-name" placeholder="Vlastní název sestavy (nechte prázdné pro auto-pojmenování)" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                        <input type="hidden" id="lineup-edit-id" value="">
+                    </div>
+                    <div class="w-full sm:w-1/3 flex gap-2">
+                        <button onclick="ulozitLineupPiloti()" id="btn-save-lineup" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2 px-2 rounded text-[11px] uppercase tracking-wider transition-colors shadow-md">
+                            💾 Uložit jako novou
+                        </button>
+                        <button onclick="zrusitEditaciLineupu()" id="btn-cancel-lineup" class="hidden bg-red-900/50 hover:bg-red-800 border border-red-500/50 text-white font-bold py-2 px-3 rounded text-[11px] uppercase tracking-wider transition-colors shadow-md" title="Zrušit editaci">
+                            ❌
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="lineups-container" class="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+                <!-- KONEC SESTAVY -->
+
                 <div class="mt-10 pt-6 border-t border-slate-800">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
@@ -185,6 +196,7 @@
             </div>
         </section>
 
+        <!-- Modals -->
         <div id="car-setup-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
                 <button onclick="zavriCarSetupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200 text-2xl font-semibold transition-colors">&times;</button>
@@ -465,7 +477,7 @@ const DEFAULTS_AUT = {
 };
 
 let DB_TRATI = {}; let DB_AUT = {}; let DB_PRESETS = []; 
-let DB_LINEUPS = []; // NOVA DATABAZE PRO PILOTY
+let DB_LINEUPS = []; 
 
 let stav = {
     isLiveMode: false, trat_jmeno: "", auto_jmeno: "", delka_zavodu_hod: 6.0, format_plus_kolo: true,
@@ -561,29 +573,68 @@ function odpojitZRelace() {
     }
 }
 
-// --- NOVÉ: ULOŽENÍ SESTAVY JEZDCŮ ---
+// LOGIKA PRO SPRÁVU SESTAVY JEZDCŮ ---------------------
 function ulozitLineupPiloti() {
-    let nazev = document.getElementById('lineup-save-name').value.trim();
-    if (!nazev) { ukazUpozorneni("Zadej prosím název pro uložení sestavy.", "error"); return; }
-    
+    let editId = document.getElementById('lineup-edit-id').value;
+    let auto = document.getElementById('setup-car').value || 'Neznámé auto';
+    let trat = document.getElementById('setup-track').value || 'Neznámá trať';
     let count = parseInt(document.getElementById('setup-drivers-count').value) || 1;
+    
     let piloti = [];
     for (let i = 0; i < count; i++) {
         piloti.push({
-            jmeno: document.getElementById(`driver-name-${i}`).value,
+            jmeno: document.getElementById(`driver-name-${i}`).value || `Jezdec ${i+1}`,
             cas: document.getElementById(`driver-time-${i}`).value,
             spotreba: document.getElementById(`driver-fuel-${i}`).value,
             cas_eco: document.getElementById(`driver-time-eco-${i}`).value,
             spotreba_eco: document.getElementById(`driver-fuel-eco-${i}`).value
         });
     }
+
+    let defaultName = `${auto} @ ${trat} (${piloti.map(p=>p.jmeno).join(', ')})`;
+    let nazev = document.getElementById('lineup-save-name').value.trim() || defaultName;
     
-    let newLineup = { id: Date.now(), nazev: nazev, piloti: piloti };
-    DB_LINEUPS.push(newLineup);
+    if (editId) {
+        let idx = DB_LINEUPS.findIndex(l => l.id == editId);
+        if(idx !== -1) {
+            DB_LINEUPS[idx].nazev = nazev;
+            DB_LINEUPS[idx].auto = auto;
+            DB_LINEUPS[idx].trat = trat;
+            DB_LINEUPS[idx].piloti = piloti;
+        }
+        ukazUpozorneni(`Sestava jezdců "${nazev}" byla upravena.`);
+    } else {
+        let newLineup = { id: Date.now(), nazev: nazev, auto: auto, trat: trat, piloti: piloti };
+        DB_LINEUPS.push(newLineup);
+        ukazUpozorneni(`Nová sestava jezdců "${nazev}" uložena.`);
+    }
+
     localStorage.setItem('iracing_custom_lineups', JSON.stringify(DB_LINEUPS));
-    document.getElementById('lineup-save-name').value = '';
+    zrusitEditaciLineupu();
     vykresliLineupy();
-    ukazUpozorneni(`Sestava jezdců "${nazev}" uložena.`);
+}
+
+function zrusitEditaciLineupu() {
+    document.getElementById('lineup-edit-id').value = '';
+    document.getElementById('lineup-save-name').value = '';
+    document.getElementById('btn-save-lineup').innerHTML = '💾 Uložit jako novou';
+    document.getElementById('btn-save-lineup').classList.replace('bg-blue-600', 'bg-slate-800');
+    document.getElementById('btn-cancel-lineup').classList.add('hidden');
+}
+
+function upravitLineup(id) {
+    let lineup = DB_LINEUPS.find(l => l.id === id);
+    if (!lineup) return;
+    
+    aktivovatLineup(id);
+    document.getElementById('lineup-edit-id').value = lineup.id;
+    document.getElementById('lineup-save-name').value = lineup.nazev;
+    
+    let btnSave = document.getElementById('btn-save-lineup');
+    btnSave.innerHTML = '✏️ Přepsat sestavu';
+    btnSave.classList.replace('bg-slate-800', 'bg-blue-600');
+    document.getElementById('btn-cancel-lineup').classList.remove('hidden');
+    ukazUpozorneni(`Nyní upravujete sestavu: ${lineup.nazev}. Po úpravě klikněte na Přepsat sestavu.`, 'success');
 }
 
 function vykresliLineupy() {
@@ -593,11 +644,16 @@ function vykresliLineupy() {
     DB_LINEUPS.forEach(L => {
         let pilotiText = L.piloti.map(p => p.jmeno).join(', ');
         html += `
-        <div class="flex justify-between items-center p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm transition-colors hover:bg-slate-800">
-            <div><span class="font-bold text-blue-400 block">${L.nazev}</span><span class="text-[10px] text-slate-500">${L.piloti.length} piloti: ${pilotiText}</span></div>
-            <div class="flex gap-2">
-                <button onclick="aktivovatLineup(${L.id})" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold transition-colors">Načíst do tabulky</button>
-                <button onclick="smazatLineup(${L.id})" class="text-red-500 hover:text-red-400 font-bold px-2 py-1 rounded border border-red-500/20 hover:bg-red-500/10">❌</button>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm transition-colors hover:bg-slate-800 gap-3">
+            <div>
+                <span class="font-bold text-blue-400 block">${L.nazev}</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">${L.auto || '?'} @ ${L.trat || '?'}</span>
+                <span class="text-[10px] text-slate-500 mt-1 block">${L.piloti.length} piloti: ${pilotiText}</span>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="aktivovatLineup(${L.id})" class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Načíst</button>
+                <button onclick="upravitLineup(${L.id})" class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Upravit</button>
+                <button onclick="smazatLineup(${L.id})" class="text-red-500 hover:text-white font-bold px-3 py-1.5 rounded border border-red-500/20 hover:bg-red-500 transition-colors">❌</button>
             </div>
         </div>`;
     });
@@ -608,7 +664,12 @@ function aktivovatLineup(id) {
     let lineup = DB_LINEUPS.find(l => l.id === id);
     if (!lineup) return;
     document.getElementById('setup-drivers-count').value = lineup.piloti.length;
-    prekresliFormularJezdcu(false); // vykreslí jen prázdné inputy (nepřepíše výchozími daty)
+    
+    if (lineup.trat) document.getElementById('setup-track').value = lineup.trat;
+    if (lineup.auto) document.getElementById('setup-car').value = lineup.auto;
+    updatePreviews();
+    
+    prekresliFormularJezdcu(false); 
     
     for (let i = 0; i < lineup.piloti.length; i++) {
         document.getElementById(`driver-name-${i}`).value = lineup.piloti[i].jmeno;
@@ -624,10 +685,11 @@ function smazatLineup(id) {
     if(confirm("Opravdu smazat tuto sestavu pilotů?")) {
         DB_LINEUPS = DB_LINEUPS.filter(l => l.id !== id);
         localStorage.setItem('iracing_custom_lineups', JSON.stringify(DB_LINEUPS));
+        if(document.getElementById('lineup-edit-id').value == id) zrusitEditaciLineupu();
         vykresliLineupy();
     }
 }
-// ------------------------------------
+// -----------------------------------------------------
 
 function otevriCarSetupModal() {
     document.getElementById('setup-pneu-fl').value = stav.aktualni_setup.pneu_fl || "1.80"; document.getElementById('setup-pneu-fr').value = stav.aktualni_setup.pneu_fr || "1.80";
@@ -825,44 +887,36 @@ function sestavDvousloupcovyLayout(outHTML_Normal, ecoHTML) {
 }
 
 function generateEcoFailedCard(reason) {
-    return `<div class="space-y-4 opacity-60"><h4 class="text-sm font-bold text-slate-500 mb-3 border-b border-slate-700 pb-2 uppercase tracking-wider">🔥 ALTERNATIVNÍ ECO STRATEGIE (-1 BOX)</h4><div class="bg-slate-950 border border-slate-800 rounded-xl p-6 text-center text-slate-400 text-sm shadow-inner flex flex-col gap-2"><span class="block font-bold text-slate-300">Aktuálně se nedá řešit ECO strategie</span><span class="text-xs text-slate-500">${reason}</span></div></div>`;
+    return `<div class="space-y-4 opacity-60"><h4 class="text-sm font-bold text-slate-500 mb-3 border-b border-slate-700 pb-2 uppercase tracking-wider">🔥 ALTERNATIVNÍ ECO STRATEGIE (-1 BOX)</h4><div class="bg-slate-950 border border-slate-800 rounded-xl p-6 text-center text-slate-400 text-sm shadow-inner flex flex-col gap-2"><span class="block font-bold text-slate-300">Aktuálně nelze řešit ECO strategii</span><span class="text-xs text-slate-500">${reason}</span></div></div>`;
 }
 
-// --- NOVÉ: UPRAVENÁ ECO KARTA VČETNĚ CÍLOVÉHO ČASU A ROZPISU STINTŮ ---
-function vygenerujEcoKard(target_stints, req_avg_fuel, target_time, eco_timeline_html, time_saved, time_lost, net_saved, akt_prum_cas) {
+function vygenerujEcoKard(target_stints, eco_timeline_html, time_saved, time_lost, net_saved, akt_prum_cas, eco_cas, eco_spotreba, eco_laps, normal_laps) {
     let statusBadge = net_saved > 0
         ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest shadow-md">VYPLATÍ SE (-${net_saved.toFixed(1)}s)</span>`
         : `<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest shadow-md">ZTRÁTA (+${Math.abs(net_saved).toFixed(1)}s)</span>`;
 
     let borderClass = net_saved > 0 ? "border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-slate-700 opacity-90";
-    let isImpossible = target_time < akt_prum_cas;
-
-    let warningBanner = isImpossible ? `
-        <div class="mb-4 bg-red-950/40 border border-red-500 rounded p-3 text-red-400 text-xs text-center font-bold">
-            ⚠️ K dosažení cíle by pilot musel jet čas ${formatujCasKola(target_time)} se spotřebou ${req_avg_fuel.toFixed(3)}L, což je RYCHLEJŠÍ než jeho běžný čas (${formatujCasKola(akt_prum_cas)}). Úspora tudíž fyzicky nelze provést.
-        </div>` : '';
 
     return `
     <div class="space-y-4">
         <h4 class="text-sm font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2 flex justify-between items-center uppercase tracking-wider">
-            <span>🔥 ALTERNATIVNÍ ECO PLÁN</span>
+            <span>🔥 ALTERNATIVNÍ ECO PLÁN (-1 BOX)</span>
             ${statusBadge}
         </h4>
         <div class="bg-slate-950/50 border-2 ${borderClass} rounded-xl p-5 mb-4">
-            ${warningBanner}
             
             <div class="text-xs text-slate-300 mb-5 leading-relaxed bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                Chcete-li vynechat <strong>poslední box</strong> a dojet závod na zbývajících <strong>${target_stints} stintů</strong>, musíte po zbytek závodu upravit mapy motoru a držet cílové tempo:
+                Chcete-li vynechat <strong>poslední box</strong> a dojet závod na zbývajících <strong>${target_stints} stintů</strong>, musíte část kol odjet v ECO režimu s nižší spotřebou.
             </div>
             
             <div class="grid grid-cols-2 gap-3 text-xs mb-5">
-                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center relative overflow-hidden">
-                    <span class="relative z-10 block text-slate-500 uppercase tracking-widest mb-1 text-[9px]">Max Ø Spotřeba</span>
-                    <span class="relative z-10 text-xl font-mono font-bold text-emerald-400">${req_avg_fuel.toFixed(3)} L/k</span>
+                <div class="bg-slate-900 p-3 rounded-lg border border-emerald-500/30 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                    <span class="relative z-10 block text-emerald-500 uppercase tracking-widest mb-1 text-[9px]">JET ECO (${eco_spotreba.toFixed(3)}L | ${formatujCasKola(eco_cas)})</span>
+                    <span class="relative z-10 text-xl font-mono font-bold text-emerald-400">${eco_laps} <span class="text-[10px] text-slate-500">kol</span></span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center relative overflow-hidden">
-                    <span class="relative z-10 block text-slate-500 uppercase tracking-widest mb-1 text-[9px]">Cílový Čas Kola</span>
-                    <span class="relative z-10 text-xl font-mono font-bold ${isImpossible ? 'text-red-500' : 'text-blue-400'}">${formatujCasKola(target_time)}</span>
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                    <span class="relative z-10 block text-slate-500 uppercase tracking-widest mb-1 text-[9px]">JET NAPLNO (${formatujCasKola(akt_prum_cas)})</span>
+                    <span class="relative z-10 text-xl font-mono font-bold text-slate-300">${normal_laps} <span class="text-[10px] text-slate-500">kol</span></span>
                 </div>
             </div>
 
@@ -885,7 +939,7 @@ function vygenerujEcoKard(target_stints, req_avg_fuel, target_time, eco_timeline
                     <span class="font-mono ${net_saved > 0 ? 'text-emerald-400' : 'text-red-400'}">${net_saved > 0 ? '-' : '+'}${Math.abs(net_saved).toFixed(1)} s</span>
                 </div>
             </div>
-            ${(net_saved <= 0 && !isImpossible) ? `<div class="mt-4 p-3 bg-amber-950/20 rounded-lg border border-amber-500/20 text-[10px] text-amber-500/80 leading-relaxed text-center font-bold tracking-wide">
+            ${net_saved <= 0 ? `<div class="mt-4 p-3 bg-amber-950/20 rounded-lg border border-amber-500/20 text-[10px] text-amber-500/80 leading-relaxed text-center font-bold tracking-wide">
                 I KDYŽ JE ÚSPORA MOŽNÁ, ČASOVĚ SE NYNÍ <strong>NEVYPLATÍ</strong>. ZTRATÍTE VÍCE ČASU POMALOU JÍZDOU, NEŽ KOLIK TRVÁ SAMOTNÝ PITSTOP. POČKEJTE, ZDA SE NEZMĚNÍ TEMPO ZÁVODU.
             </div>` : ''}
         </div>
@@ -998,8 +1052,9 @@ function prepocitejLiveZavodStrategii() {
     let validni_kola = stav.historie_kol.filter(l => l.is_flying_lap && l.wet === isCurrentWet);
     let aktJezdec = stav.jezdci.find(j => j.jmeno === (stav.stinty[stav.idx_aktualniho_jezdce]?.jezdec_jmeno)) || stav.jezdci[0];
     let akt_prum_spotreba = 0, akt_prum_cas = 0; let potrebna_kola = isCurrentWet ? 4 : 6;
+    let isCalibrated = validni_kola.length >= potrebna_kola;
 
-    if (validni_kola.length >= potrebna_kola) {
+    if (isCalibrated) {
         document.getElementById('badge-calibration').innerText = `LIVE DATA (${isCurrentWet ? 'MOKRO' : 'SUCHO'})`;
         document.getElementById('badge-calibration').className = "absolute top-4 right-4 text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold tracking-widest uppercase transition-all";
         let sum_c = 0, sum_f = 0; validni_kola.forEach(l => { sum_c += l.cas; sum_f += l.spotreba; });
@@ -1019,7 +1074,7 @@ function prepocitejLiveZavodStrategii() {
     let sim_cas = odjety_cas_sec; let sim_palivo = stav.palivo_v_aute; let s_idx = stav.idx_aktualniho_jezdce; let s_cislo = s_idx + 1;
     let predpoved_celkem_kol = stav.posledni_zapsane_kolo; let pitstops_list = [];
 
-    // STANDARDNI PROPOCTY
+    // STANDARDNÍ PROPOČTY
     while (sim_cas < celkovy_cas_zavodu) {
         let st_obj = (s_idx < stav.stinty.length) ? stav.stinty[s_idx] : stav.stinty[stav.stinty.length - 1];
         let jmeno = st_obj ? st_obj.jezdec_jmeno.toUpperCase() : "TÝM"; let meni_pneu = st_obj ? st_obj.meni_pneu : true;
@@ -1048,6 +1103,8 @@ function prepocitejLiveZavodStrategii() {
             predpoved_celkem_kol += kola_do_šachovnice; sim_cas += kola_do_šachovnice * akt_prum_cas; break; 
         } else {
             let kola_real = Math.max(1, max_kola_na_palivo);
+            if (sim_palivo < 1.5) kola_real = 0; // Ošetření pro případ nádrže pod minimum
+            
             outHTML_Normal += `<div class="bg-slate-950 border-2 ${cardBorder} rounded-xl overflow-hidden mb-4">${titleBlock}<div class="p-4 flex justify-between items-center text-sm"><div><span class="block text-slate-500 uppercase text-[10px] tracking-wider mb-1">${(s_idx === stav.idx_aktualniho_jezdce) ? "Do boxu:" : "Cílový počet kol:"}</span><span class="text-2xl font-mono font-bold text-blue-400">${kola_real} KOL</span></div><div class="text-right"><span class="block text-slate-500 uppercase text-[10px] tracking-wider mb-1">Zůstatek do pitu:</span><span class="text-xl font-mono font-bold text-white">${Math.max(0, sim_palivo - (kola_real * akt_prum_spotreba)).toFixed(1)} L</span></div></div></div>`;
             sim_cas += (kola_real * akt_prum_cas); sim_palivo -= (kola_real * akt_prum_spotreba); predpoved_celkem_kol += kola_real;
 
@@ -1065,71 +1122,109 @@ function prepocitejLiveZavodStrategii() {
         }
     }
 
-    let eco_cas = aktJezdec.cas_eco; let eco_spotreba = aktJezdec.spotreba_eco;
-    let best_live_eco = validni_kola.reduce((best, lap) => (lap.spotreba < best.spotreba && lap.spotreba > 0 ? lap : best), {spotreba: 999, cas: 999});
-    if (best_live_eco.spotreba < eco_spotreba && best_live_eco.spotreba > 0) { eco_spotreba = best_live_eco.spotreba; eco_cas = best_live_eco.cas; }
-
-    let ecoHTML = ''; let normal_stops = pitstops_list.length;
-    let target_laps_rem = Math.max(1, predpoved_celkem_kol - Math.max(...stav.raw_laps.map(l=>l.kolo), 0));
-
-    if (normal_stops > 0) {
-        let last_pit_time = pitstops_list[normal_stops - 1].c_pit_total;
-        let target_stints = normal_stops; 
-        let max_fuel_for_eco = stav.palivo_v_aute + ((target_stints - 1) * stav.auto_data.nadrz_l) - 1.5;
-        let req_avg_fuel = max_fuel_for_eco / target_laps_rem;
-
-        if (req_avg_fuel >= akt_prum_spotreba) {
-            ecoHTML = generateEcoFailedCard("Paliva na vynechání zastávky máte dostatek i při plném tempu. Zastávku není třeba řešit přes ECO režim, dojedete to bez problémů.");
-        } else if (req_avg_fuel < eco_spotreba) {
-            ecoHTML = generateEcoFailedCard(`Nemožné. Pro vynechání zastávky musíte srazit průměr na ${req_avg_fuel.toFixed(3)} L/kolo, ale vaše ECO minimum je ${eco_spotreba.toFixed(3)} L/kolo. Nádrž tolik nevydrží ani při extrémním šetření.`);
-        } else {
-            // VÝPOČET CÍLOVÉHO ČASU ECO KOLA (Lineární interpolace)
-            let fuel_ratio = (akt_prum_spotreba - req_avg_fuel) / (akt_prum_spotreba - eco_spotreba);
-            let target_time = akt_prum_cas + (fuel_ratio * (eco_cas - akt_prum_cas));
-
-            // GENERATOR ECO STINTU
-            let eco_timeline_html = '<div class="space-y-2">';
-            let laps_assigned = 0;
-            let current_fuel = stav.palivo_v_aute;
-            let start_stint_idx = stav.idx_aktualniho_jezdce + 1;
-            
-            for (let i = 0; i < target_stints; i++) {
-                // Rozložení kol do stintů
-                let laps_for_stint = Math.ceil(target_laps_rem / target_stints);
-                if (i === target_stints - 1) laps_for_stint = target_laps_rem - laps_assigned; // Poslední stint zarovná zbytky
-                laps_assigned += laps_for_stint;
-
-                let isNaTrati = (i === 0) ? " <span class='text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded'>NA TRATI</span>" : "";
-                let fuel_end = current_fuel - (laps_for_stint * req_avg_fuel);
-
-                eco_timeline_html += `
-                <div class="bg-slate-900 border border-slate-700 rounded-lg p-2.5 flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] text-blue-400 font-bold uppercase">Stint ${start_stint_idx + i}${isNaTrati}</span>
-                        <span class="block text-lg font-mono font-bold text-slate-200 mt-1">${laps_for_stint} KOL</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Palivo v cíli stintu</span>
-                        <span class="text-sm font-mono font-bold text-white">${Math.max(0, fuel_end).toFixed(1)} L</span>
-                    </div>
-                </div>`;
-
-                if (i < target_stints - 1) {
-                    let fill_amount = stav.auto_data.nadrz_l - fuel_end;
-                    current_fuel = fuel_end + fill_amount;
-                    eco_timeline_html += `<div class="text-center text-[10px] text-orange-400 font-bold my-1 border-l-2 border-orange-500/30 ml-4 pl-2 py-0.5 w-max">BOX / TANKOVÁNÍ +${fill_amount.toFixed(1)}L</div>`;
-                }
-            }
-            eco_timeline_html += '</div>';
-
-            let time_lost = target_laps_rem * (target_time - akt_prum_cas);
-            let time_saved = last_pit_time;
-            let net_saved = time_saved - time_lost;
-
-            ecoHTML = vygenerujEcoKard(target_stints, req_avg_fuel, target_time, eco_timeline_html, time_saved, time_lost, net_saved, akt_prum_cas);
-        }
+    let ecoHTML = '';
+    
+    // SCHOVÁNO POKUD NENÍ ZKALIBROVÁNO
+    if (!isCalibrated) {
+        ecoHTML = generateEcoFailedCard(`Čeká se na dokončení kalibrace (${validni_kola.length}/${potrebna_kola} čistých kol). Nyní se nedá přesně modelovat ECO varianta na základě reálných dat z tratě.`);
     } else {
-        ecoHTML = generateEcoFailedCard("Není naplánována žádná další zastávka, kterou by bylo možné ušetřit.");
+        let eco_cas = aktJezdec.cas_eco; let eco_spotreba = aktJezdec.spotreba_eco;
+        let best_live_eco = validni_kola.reduce((best, lap) => (lap.spotreba < best.spotreba && lap.spotreba > 0 ? lap : best), {spotreba: 999, cas: 999});
+        if (best_live_eco.spotreba < eco_spotreba && best_live_eco.spotreba > 0) { eco_spotreba = best_live_eco.spotreba; eco_cas = best_live_eco.cas; }
+
+        let normal_stops = pitstops_list.length;
+        let target_laps_rem = Math.max(1, predpoved_celkem_kol - Math.max(...stav.raw_laps.map(l=>l.kolo), 0));
+
+        if (normal_stops > 0) {
+            let last_pit_time = pitstops_list[normal_stops - 1].c_pit_total;
+            let target_stints = normal_stops; 
+            let max_fuel_for_eco = stav.palivo_v_aute + ((target_stints - 1) * stav.auto_data.nadrz_l) - 1.5;
+            let req_avg_fuel = max_fuel_for_eco / target_laps_rem;
+
+            if (req_avg_fuel >= akt_prum_spotreba) {
+                ecoHTML = generateEcoFailedCard("Paliva na vynechání zastávky máte dostatek i při plném tempu. Zastávku není třeba řešit přes ECO režim, dojedete to bez problémů.");
+            } else if (req_avg_fuel < eco_spotreba) {
+                ecoHTML = generateEcoFailedCard(`Nemožné. Pro vynechání zastávky musíte srazit průměr na ${req_avg_fuel.toFixed(3)} L/kolo, ale vaše ECO minimum je ${eco_spotreba.toFixed(3)} L/kolo. Nádrž tolik nevydrží ani při extrémním šetření.`);
+            } else {
+                let eco_laps = Math.ceil((target_laps_rem * akt_prum_spotreba - max_fuel_for_eco) / (akt_prum_spotreba - eco_spotreba));
+                if (eco_laps > target_laps_rem) eco_laps = target_laps_rem;
+                let normal_laps = target_laps_rem - eco_laps;
+
+                let rem_eco = eco_laps;
+                let rem_norm = normal_laps;
+                let cur_f = stav.palivo_v_aute;
+                let stints_arr = [];
+
+                // ROZDĚLENÍ ECO KOL BEZ PŘETEČENÍ NÁDRŽE A SE ZACHOVÁNÍM 1.5L REZERVY
+                for(let i=0; i < target_stints; i++) {
+                    let isLast = (i === target_stints - 1);
+                    let stint_eco = 0, stint_norm = 0;
+                    let fuel_avail = cur_f - 1.5;
+
+                    if (isLast) {
+                        stint_eco = rem_eco; stint_norm = rem_norm;
+                        cur_f -= (stint_eco * eco_spotreba + stint_norm * akt_prum_spotreba);
+                    } else {
+                        let target_stint_laps = Math.ceil((rem_eco + rem_norm) / (target_stints - i));
+                        stint_eco = Math.min(target_stint_laps, rem_eco);
+                        stint_norm = target_stint_laps - stint_eco;
+
+                        let fuel_needed = (stint_eco * eco_spotreba) + (stint_norm * akt_prum_spotreba);
+                        
+                        while(fuel_needed > fuel_avail && (stint_norm > 0 || stint_eco > 0)) {
+                            if (stint_norm > 0) { stint_norm--; rem_norm++; }
+                            else { stint_eco--; rem_eco++; }
+                            fuel_needed = (stint_eco * eco_spotreba) + (stint_norm * akt_prum_spotreba);
+                        }
+                        cur_f -= fuel_needed; rem_eco -= stint_eco; rem_norm -= stint_norm;
+                    }
+
+                    let fill = 0;
+                    if (!isLast) {
+                        let fuel_needed_for_rest = (rem_eco * eco_spotreba) + (rem_norm * akt_prum_spotreba) + 1.5;
+                        fill = Math.min(stav.auto_data.nadrz_l - cur_f, Math.max(0, fuel_needed_for_rest - cur_f));
+                        cur_f += fill;
+                    }
+                    stints_arr.push({ eco: stint_eco, norm: stint_norm, end_fuel: cur_f, fill: fill });
+                }
+
+                // VYKRESLENÍ STINTŮ POUZE KDE SE ŠETŘÍ A NORMÁLNÍCH (ROZLIŠENO BAREVNĚ)
+                let eco_timeline_html = '<div class="space-y-2">';
+                let start_stint_idx = stav.idx_aktualniho_jezdce + 1;
+                stints_arr.forEach((s, idx) => {
+                    let isNaTrati = (idx === 0) ? " <span class='text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded'>NA TRATI</span>" : "";
+                    let lapDesc = [];
+                    if (s.eco > 0) lapDesc.push(`<span class="text-emerald-400 font-bold">${s.eco} kol ECO</span>`);
+                    if (s.norm > 0) lapDesc.push(`<span class="text-slate-300">${s.norm} kol NAPLNO</span>`);
+                    if (s.eco === 0 && s.norm === 0) lapDesc.push(`<span class="text-slate-500">0 kol</span>`);
+                    
+                    eco_timeline_html += `
+                    <div class="bg-slate-900 border ${s.eco > 0 ? 'border-emerald-500/50' : 'border-slate-700'} rounded-lg p-2.5 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] text-blue-400 font-bold uppercase">Stint ${start_stint_idx + idx}${isNaTrati}</span>
+                            <span class="block text-sm font-mono mt-1">${lapDesc.join(' + ')}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[9px] text-slate-500 uppercase tracking-widest block mb-1">Zůstatek</span>
+                            <span class="text-sm font-mono font-bold text-white">${Math.max(0, s.end_fuel).toFixed(1)} L</span>
+                        </div>
+                    </div>`;
+
+                    if (s.fill > 0) {
+                        eco_timeline_html += `<div class="text-center text-[10px] text-orange-400 font-bold my-1 border-l-2 border-orange-500/30 ml-4 pl-2 py-0.5 w-max">BOX / TANKOVÁNÍ +${s.fill.toFixed(1)}L</div>`;
+                    }
+                });
+                eco_timeline_html += '</div>';
+
+                let time_lost = eco_laps * (eco_cas - akt_prum_cas);
+                let time_saved = last_pit_time;
+                let net_saved = time_saved - time_lost;
+
+                ecoHTML = vygenerujEcoKard(target_stints, eco_timeline_html, time_saved, time_lost, net_saved, akt_prum_cas, eco_cas, eco_spotreba, eco_laps, normal_laps);
+            }
+        } else {
+            ecoHTML = generateEcoFailedCard("Není naplánována žádná další zastávka, kterou by bylo možné ušetřit.");
+        }
     }
 
     container.innerHTML = sestavDvousloupcovyLayout(outHTML_Normal, ecoHTML);
