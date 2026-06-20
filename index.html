@@ -15,6 +15,8 @@
         
         .preset-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
         .preset-content.open { max-height: 1000px; transition: max-height 0.3s ease-in; }
+        .lineup-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .lineup-content.open { max-height: 1000px; transition: max-height 0.3s ease-in; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-blue-500 selection:text-white">
@@ -139,7 +141,7 @@
                     </div>
                 </div>
                 
-                <div id="lineups-container" class="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+                <div id="lineups-container" class="mt-3 space-y-2 max-h-96 overflow-y-auto pr-1"></div>
                 <div class="mt-10 pt-6 border-t border-slate-800">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
@@ -696,23 +698,54 @@ function upravitLineup(id) {
     ukazUpozorneni(`Nyní upravujete sestavu: ${lineup.nazev}. Po úpravě klikněte na Přepsat sestavu.`, 'success');
 }
 
+function toggleLineupAccordion(id) {
+    const el = document.getElementById(`lineup-content-${id}`); 
+    const icon = document.getElementById(`lineup-icon-${id}`);
+    if (el.classList.contains('open')) { 
+        el.classList.remove('open'); icon.innerHTML = '▼'; 
+    } else { 
+        document.querySelectorAll('.lineup-content').forEach(e => e.classList.remove('open')); 
+        document.querySelectorAll('[id^="lineup-icon-"]').forEach(i => i.innerHTML = '▼'); 
+        el.classList.add('open'); icon.innerHTML = '▲'; 
+    }
+}
+
 function vykresliLineupy() {
     const container = document.getElementById('lineups-container');
     if (DB_LINEUPS.length === 0) { container.innerHTML = ''; return; }
     let html = '';
     DB_LINEUPS.forEach(L => {
-        let pilotiText = L.piloti.map(p => p.jmeno).join(', ');
-        html += `
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm transition-colors hover:bg-slate-800 gap-3">
-            <div>
-                <span class="font-bold text-blue-400 block">${L.nazev}</span>
-                <span class="text-[10px] text-slate-400 block mt-0.5">${L.auto || '?'} @ ${L.trat || '?'}</span>
-                <span class="text-[10px] text-slate-500 mt-1 block">${L.piloti.length} piloti: ${pilotiText}</span>
+        let pilotiHTML = L.piloti.map(p => `
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 border-b border-slate-800/50 py-1.5 text-[11px] items-center">
+                <span class="text-slate-300 font-bold">${p.jmeno}</span>
+                <span class="text-blue-400 text-center">${p.cas || '-'}</span>
+                <span class="text-amber-500 text-center">${p.spotreba || '-'} L</span>
+                <span class="text-red-400 text-center">ECO: ${p.cas_eco || p.cas || '-'}</span>
+                <span class="text-red-400 text-center">ECO: ${p.spotreba_eco || p.spotreba || '-'} L</span>
             </div>
-            <div class="flex gap-2 w-full sm:w-auto">
-                <button onclick="aktivovatLineup(${L.id})" class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Načíst</button>
-                <button onclick="upravitLineup(${L.id})" class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Upravit</button>
-                <button onclick="smazatLineup(${L.id})" class="text-red-500 hover:text-white font-bold px-3 py-1.5 rounded border border-red-500/20 hover:bg-red-500 transition-colors">❌</button>
+        `).join('');
+
+        html += `
+        <div class="bg-slate-900/80 border border-slate-700 rounded-lg overflow-hidden transition-all mb-2">
+            <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-800 transition-colors" onclick="toggleLineupAccordion(${L.id})">
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-bold text-slate-200">${L.nazev}</span>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-600 hidden sm:block">${L.auto || '?'} @ ${L.trat || '?'}</span>
+                    <span class="text-[10px] text-slate-500 hidden sm:block">(${L.piloti.length} piloti)</span>
+                </div>
+                <span id="lineup-icon-${L.id}" class="text-slate-400 text-xs font-bold transition-transform">▼</span>
+            </div>
+            <div id="lineup-content-${L.id}" class="preset-content lineup-content bg-slate-950 px-4">
+                <div class="pb-4">
+                    <div class="mt-2 bg-slate-900 rounded p-2 border border-slate-800">
+                        ${pilotiHTML}
+                    </div>
+                    <div class="mt-4 flex gap-3 border-t border-slate-800 pt-3">
+                        <button onclick="aktivovatLineup(${L.id})" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors flex-1 shadow-md">🚀 Načíst sestavu</button>
+                        <button onclick="upravitLineup(${L.id})" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-md">✏️ Upravit</button>
+                        <button onclick="smazatLineup(${L.id})" class="bg-red-900/50 hover:bg-red-600 border border-red-500/30 text-white px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-md">🗑️ Smazat</button>
+                    </div>
+                </div>
             </div>
         </div>`;
     });
@@ -891,6 +924,7 @@ function pridejAutoDoDB() { const name = document.getElementById('db-car-name').
 function parseLapTime(inputStr) { inputStr = String(inputStr).trim(); if (!inputStr) return 0; if (inputStr.includes(':')) { const segments = inputStr.split(':'); if (segments.length === 2) return (parseFloat(segments[0]) * 60) + parseFloat(segments[1]); } return parseFloat(inputStr) || 0; }
 function formatujCasKola(sekundy) { if (!sekundy || isNaN(sekundy)) return "-"; const m = Math.floor(sekundy / 60); const s = (sekundy % 60).toFixed(3); return m > 0 ? `${m}:${String(s).padStart(6, '0')}` : `${s}s`; }
 function formatujSekundy(sekundy) { if (sekundy < 0) sekundy = 0; const h = Math.floor(sekundy / 3600); const m = Math.floor((sekundy % 3600) / 60); const s = (sekundy % 60).toFixed(3); return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(6, '0')}s`; }
+function formatujCasKratsi(sekundy) { if (sekundy < 0) sekundy = 0; const h = Math.floor(sekundy / 3600); const m = Math.floor((sekundy % 3600) / 60); if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`; return `${m}m`; }
 
 function otevriDbModal() { document.getElementById('db-modal').classList.remove('hidden'); } 
 function zavriDbModal() { document.getElementById('db-modal').classList.add('hidden'); }
@@ -980,12 +1014,24 @@ function generujStrategii() {
     
     const count = parseInt(document.getElementById('setup-drivers-count').value) || 1; stav.jezdci = [];
     for (let i = 0; i < count; i++) {
+        let norm_cas_raw = document.getElementById(`driver-time-${i}`).value;
+        let norm_fuel_raw = document.getElementById(`driver-fuel-${i}`).value;
+        let eco_cas_raw = document.getElementById(`driver-time-eco-${i}`).value;
+        let eco_fuel_raw = document.getElementById(`driver-fuel-eco-${i}`).value;
+        
+        let norm_cas = parseLapTime(norm_cas_raw);
+        let norm_fuel = parseFloat(norm_fuel_raw) || 3.4;
+        
+        // Zde je FALLBACK: Pokud jsou ECO pole prázdná, propíšou se standardní hodnoty
+        let eco_cas = eco_cas_raw.trim() !== "" && parseLapTime(eco_cas_raw) > 0 ? parseLapTime(eco_cas_raw) : norm_cas;
+        let eco_fuel = eco_fuel_raw.trim() !== "" && parseFloat(eco_fuel_raw) > 0 ? parseFloat(eco_fuel_raw) : norm_fuel;
+
         stav.jezdci.push({
             jmeno: document.getElementById(`driver-name-${i}`).value || `Jezdec ${i+1}`,
-            cas: parseLapTime(document.getElementById(`driver-time-${i}`).value),
-            spotreba: parseFloat(document.getElementById(`driver-fuel-${i}`).value) || 3.4,
-            cas_eco: parseLapTime(document.getElementById(`driver-time-eco-${i}`).value) || 105.0,
-            spotreba_eco: parseFloat(document.getElementById(`driver-fuel-eco-${i}`).value) || 3.2
+            cas: norm_cas,
+            spotreba: norm_fuel,
+            cas_eco: eco_cas,
+            spotreba_eco: eco_fuel
         });
     }
 
@@ -1068,7 +1114,10 @@ function prepocitejPredpovedZavodu() {
             let t_tank = tankovat / stav.auto_data.rychlost_tankovani_l_za_s; let t_pneu = st.meni_pneu ? stav.auto_data.cas_pneu_sec : 0; let celkovy_pit = t_tank + t_pneu + stav.trat_data.pit_lane_loss_sec;
 
             if (sim_cas + celkovy_pit >= celkovy_cas_sec && !stav.format_plus_kolo) { outHTML += vytvorCilovyOdznak(formatujSekundy(sim_cas), false); break; }
-            outHTML += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-2xl">🛠️</span><div><div class="text-xs text-orange-400 font-bold uppercase tracking-wider">BOX (${celkovy_pit.toFixed(1)}s)</div></div></div><div class="text-right"><div class="text-lg font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
+            
+            let pit_time_str = formatujCasKratsi(sim_cas);
+            
+            outHTML += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-2xl">🛠️</span><div><div class="text-xs text-orange-400 font-bold uppercase tracking-wider">BOX v čase ${pit_time_str}</div><div class="text-[10px] text-orange-500/70 font-bold uppercase tracking-wider mt-0.5">Trvání: ${celkovy_pit.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-lg font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
             sim_cas += celkovy_pit; palivo_v_nadrzi += tankovat; aktualni_pneu_nove = st.meni_pneu;
         }
     }
@@ -1312,8 +1361,10 @@ function prepocitejLiveZavodStrategii() {
             let c_pit_total = (tankovat / stav.auto_data.rychlost_tankovani_l_za_s) + c_pit_base;
             pitstops_list.push({ c_pit_total: c_pit_total, tankovat: tankovat });
 
+            let pit_time_str = formatujCasKratsi(sim_cas);
+
             if (sim_cas + c_pit_total >= celkovy_cas_zavodu && !stav.format_plus_kolo) { outHTML_Normal += vytvorCilovyOdznak(formatujSekundy(sim_cas), false); break; }
-            outHTML_Normal += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl">🛠️</span><div class="text-[11px] text-orange-400 font-bold uppercase">BOX (${c_pit_total.toFixed(1)}s)</div></div><div class="text-right"><div class="text-sm font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
+            outHTML_Normal += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl">🛠️</span><div><div class="text-[11px] text-orange-400 font-bold uppercase">BOX v čase ${pit_time_str}</div><div class="text-[9px] text-orange-500/80 uppercase mt-0.5">Trvání: ${c_pit_total.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-sm font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
             sim_cas += c_pit_total; sim_palivo += tankovat; s_idx++; s_cislo++;
         }
     }
