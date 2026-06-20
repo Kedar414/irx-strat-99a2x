@@ -81,7 +81,7 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Zvolená Trať</label>
                         <select id="setup-track" onchange="updatePreviews()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"></select>
@@ -95,13 +95,17 @@
                         <input id="setup-hours" type="number" step="0.5" value="6.0" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Počet Pilotů v týmu</label>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Čas startu (volitelné)</label>
+                        <input id="setup-start-time" type="time" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Počet Pilotů</label>
                         <input id="setup-drivers-count" type="number" min="1" max="55" value="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold">
                     </div>
                     <div class="flex items-center justify-center bg-slate-950 border border-slate-800 rounded-lg h-[42px] px-4 shadow-inner">
                         <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-amber-400 uppercase tracking-wider select-none">
                             <input id="setup-plus-one-lap" type="checkbox" checked class="w-4 h-4 rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0">
-                            <span>Formát Čas + 1 kolo</span>
+                            <span>Čas + 1 kolo</span>
                         </label>
                     </div>
                 </div>
@@ -537,6 +541,7 @@ let DB_LINEUPS = [];
 
 let stav = {
     isLiveMode: false, trat_jmeno: "", auto_jmeno: "", delka_zavodu_hod: 6.0, format_plus_kolo: true,
+    start_time_str: "", start_time_sec: null,
     auto_data: {}, trat_data: {}, jezdci: [], stinty: [], raw_laps: [], suma_casu: 0, suma_paliva: 0,
     historie_kol: [], posledni_zapsane_kolo: 0, palivo_v_aute: 0.0, idx_aktualniho_jezdce: 0, kolo_posledniho_pitu: 0, report_pitstopy: [],
     aktualni_setup: { 
@@ -761,7 +766,7 @@ function aktivovatLineup(id) {
     if (lineup.auto) document.getElementById('setup-car').value = lineup.auto;
     updatePreviews();
     
-    prekresliFormularJezdcu(false); 
+    prekresliFormularJezdcu(false, true); 
     
     for (let i = 0; i < lineup.piloti.length; i++) {
         document.getElementById(`driver-name-${i}`).value = lineup.piloti[i].jmeno;
@@ -926,6 +931,30 @@ function formatujCasKola(sekundy) { if (!sekundy || isNaN(sekundy)) return "-"; 
 function formatujSekundy(sekundy) { if (sekundy < 0) sekundy = 0; const h = Math.floor(sekundy / 3600); const m = Math.floor((sekundy % 3600) / 60); const s = (sekundy % 60).toFixed(3); return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(6, '0')}s`; }
 function formatujCasKratsi(sekundy) { if (sekundy < 0) sekundy = 0; const h = Math.floor(sekundy / 3600); const m = Math.floor((sekundy % 3600) / 60); if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`; return `${m}m`; }
 
+// Nové funkce pro práci s absolutním časem dne (pokud je vyplněn)
+function getAbsolutniNeboRelativniCas(sim_cas_sekundy) {
+    if (stav.start_time_sec !== null) {
+        let celkem = stav.start_time_sec + sim_cas_sekundy;
+        let h = Math.floor(celkem / 3600) % 24;
+        let m = Math.floor((celkem % 3600) / 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    } else {
+        return formatujCasKratsi(sim_cas_sekundy);
+    }
+}
+
+function getAbsolutniNeboRelativniCasDlouhy(sim_cas_sekundy) {
+    if (stav.start_time_sec !== null) {
+        let celkem = stav.start_time_sec + sim_cas_sekundy;
+        let h = Math.floor(celkem / 3600) % 24;
+        let m = Math.floor((celkem % 3600) / 60);
+        let s = Math.floor(celkem % 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    } else {
+        return formatujSekundy(sim_cas_sekundy);
+    }
+}
+
 function otevriDbModal() { document.getElementById('db-modal').classList.remove('hidden'); } 
 function zavriDbModal() { document.getElementById('db-modal').classList.add('hidden'); }
 
@@ -982,19 +1011,49 @@ function ulozitTrackInfo() {
 
 function updatePreviews() { const trat = document.getElementById('setup-track').value; const auto = document.getElementById('setup-car').value; document.getElementById('preview-car-name').innerText = auto || "-"; const carImg = document.getElementById('preview-car-img'); const carNoImg = document.getElementById('preview-car-noimg'); if(DB_AUT[auto] && DB_AUT[auto].url_obrazku) { carImg.src = DB_AUT[auto].url_obrazku; carImg.classList.remove('hidden'); carNoImg.classList.add('hidden'); } else { carImg.src = ""; carImg.classList.add('hidden'); carNoImg.classList.remove('hidden'); } document.getElementById('preview-track-name').innerText = trat || "-"; const trackImg = document.getElementById('preview-track-img'); const trackNoImg = document.getElementById('preview-track-noimg'); if(DB_TRATI[trat] && DB_TRATI[trat].url_obrazku) { trackImg.src = DB_TRATI[trat].url_obrazku; trackImg.classList.remove('hidden'); trackNoImg.classList.add('hidden'); } else { trackImg.src = ""; trackImg.classList.add('hidden'); trackNoImg.classList.remove('hidden'); } stav.aktualni_setup = { p_fl: "", p_fr: "", p_rl: "", p_rr: "", c_fl: "", c_fr: "", c_rl: "", c_rr: "", t_fl: "", t_fr: "", t_rl: "", t_rr: "", arb_f: "", arb_r: "", wing: "", notes: "" }; document.getElementById('setup-indicator').classList.add('hidden'); }
 
-window.addEventListener('DOMContentLoaded', () => { inicializujDatabazi(); document.getElementById('setup-drivers-count').addEventListener('input', () => prekresliFormularJezdcu(true)); prekresliFormularJezdcu(true); });
+window.addEventListener('DOMContentLoaded', () => { inicializujDatabazi(); document.getElementById('setup-drivers-count').addEventListener('input', () => prekresliFormularJezdcu(true, false)); prekresliFormularJezdcu(true, false); });
 
-function prekresliFormularJezdcu(useDefault = true) {
+function prekresliFormularJezdcu(useDefault = true, forceReset = false) {
     let count = parseInt(document.getElementById('setup-drivers-count').value) || 1;
     if (count < 1) count = 1; if (count > 50) count = 50;
+    
+    // Záchrana aktuálně vyplněných dat (aby se při přidání pilota nesmazala předchozí snaha)
+    let savedDrivers = [];
+    if (!forceReset) {
+        let tableBody = document.getElementById('drivers-table-body');
+        if (tableBody) {
+            let rows = tableBody.children;
+            for (let i = 0; i < rows.length; i++) {
+                let jmenoEl = document.getElementById(`driver-name-${i}`);
+                if (!jmenoEl) continue;
+                savedDrivers.push({
+                    jmeno: jmenoEl.value,
+                    cas: document.getElementById(`driver-time-${i}`).value,
+                    spotreba: document.getElementById(`driver-fuel-${i}`).value,
+                    cas_eco: document.getElementById(`driver-time-eco-${i}`).value,
+                    spotreba_eco: document.getElementById(`driver-fuel-eco-${i}`).value
+                });
+            }
+        }
+    }
+
     const container = document.getElementById('drivers-table-body'); let outHTML = '';
     const vychozi = [
         {jmeno: "Martin", cas: "1:42.500", spotreba: 3.410, cas_eco: "1:43.900", spotreba_eco: 3.200},
         {jmeno: "Petr", cas: "1:43.800", spotreba: 3.520, cas_eco: "1:44.900", spotreba_eco: 3.250},
         {jmeno: "Honza", cas: "1:41.900", spotreba: 3.350, cas_eco: "1:43.100", spotreba_eco: 3.100}
     ];
+    
     for (let i = 0; i < count; i++) {
-        const def = (useDefault && vychozi[i]) ? vychozi[i] : {jmeno: `Jezdec ${i + 1}`, cas: "", spotreba: "", cas_eco: "", spotreba_eco: ""};
+        let def;
+        if (savedDrivers[i]) {
+            def = savedDrivers[i]; // Zachováme uživatelský vstup
+        } else if (useDefault && vychozi[i]) {
+            def = vychozi[i]; // Výchozí data pro usnadnění
+        } else {
+            def = {jmeno: `Jezdec ${i + 1}`, cas: "", spotreba: "", cas_eco: "", spotreba_eco: ""}; // Čistý stůl pro nové jezdce
+        }
+
         outHTML += `
         <tr class="border-b border-slate-800/40 hover:bg-slate-900/30 text-sm">
         <td class="py-3 pl-2"><input type="text" id="driver-name-${i}" value="${def.jmeno}" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200 w-full"></td>
@@ -1011,6 +1070,17 @@ function generujStrategii() {
     stav.trat_jmeno = document.getElementById('setup-track').value; stav.auto_jmeno = document.getElementById('setup-car').value;
     stav.delka_zavodu_hod = parseFloat(document.getElementById('setup-hours').value); stav.format_plus_kolo = document.getElementById('setup-plus-one-lap').checked;
     stav.auto_data = DB_AUT[stav.auto_jmeno]; stav.trat_data = DB_TRATI[stav.trat_jmeno];
+    
+    // Zpracování absolutního času startu
+    let startInput = document.getElementById('setup-start-time').value;
+    if (startInput) {
+        stav.start_time_str = startInput;
+        let parts = startInput.split(':');
+        stav.start_time_sec = (parseInt(parts[0]) * 3600) + (parseInt(parts[1]) * 60);
+    } else {
+        stav.start_time_str = "";
+        stav.start_time_sec = null;
+    }
     
     const count = parseInt(document.getElementById('setup-drivers-count').value) || 1; stav.jezdci = [];
     for (let i = 0; i < count; i++) {
@@ -1092,7 +1162,8 @@ function prepocitejPredpovedZavodu() {
         let zbyvajici_cas = celkovy_cas_sec - sim_cas; let kola_do_šachovnice = Math.ceil(zbyvajici_cas / jzd.cas) + (stav.format_plus_kolo ? 1 : 0);
         let optimalizovana_kola = Math.min(max_kola_na_palivo, kola_do_šachovnice); if (optimalizovana_kola <= 0) optimalizovana_kola = 1;
         let spotreba_stintu = optimalizovana_kola * jzd.spotreba; palivo_v_nadrzi -= spotreba_stintu;
-        let cas_stintu = optimalizovana_kola * jzd.cas; sim_cas += cas_stintu; let cas_do = formatujSekundy(sim_cas); celkem_kol += optimalizovana_kola;
+        let cas_stintu = optimalizovana_kola * jzd.cas; sim_cas += cas_stintu; celkem_kol += optimalizovana_kola;
+        let cas_do = getAbsolutniNeboRelativniCasDlouhy(sim_cas); 
         
         let pneuBadge = aktualni_pneu_nove ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">🛞 NOVÉ PNEU</span>` : `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30">♻️ POUŽITÉ PNEU</span>`;
         let cardBorder = aktualni_pneu_nove ? "border-emerald-500/40 shadow-emerald-500/5" : "border-slate-700";
@@ -1113,11 +1184,12 @@ function prepocitejPredpovedZavodu() {
             let chybejici_palivo = potrebne_palivo - palivo_v_nadrzi; let tankovat = Math.max(0, Math.min(maximalni_doplneni, chybejici_palivo));
             let t_tank = tankovat / stav.auto_data.rychlost_tankovani_l_za_s; let t_pneu = st.meni_pneu ? stav.auto_data.cas_pneu_sec : 0; let celkovy_pit = t_tank + t_pneu + stav.trat_data.pit_lane_loss_sec;
 
-            if (sim_cas + celkovy_pit >= celkovy_cas_sec && !stav.format_plus_kolo) { outHTML += vytvorCilovyOdznak(formatujSekundy(sim_cas), false); break; }
+            if (sim_cas + celkovy_pit >= celkovy_cas_sec && !stav.format_plus_kolo) { outHTML += vytvorCilovyOdznak(getAbsolutniNeboRelativniCasDlouhy(sim_cas), false); break; }
             
-            let pit_time_str = formatujCasKratsi(sim_cas);
+            let pit_time_str = getAbsolutniNeboRelativniCas(sim_cas);
+            let textCasu = stav.start_time_sec !== null ? `BOX v ${pit_time_str}` : `BOX v čase ${pit_time_str}`;
             
-            outHTML += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-2xl">🛠️</span><div><div class="text-xs text-orange-400 font-bold uppercase tracking-wider">BOX v čase ${pit_time_str}</div><div class="text-[10px] text-orange-500/70 font-bold uppercase tracking-wider mt-0.5">Trvání: ${celkovy_pit.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-lg font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
+            outHTML += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-2xl">🛠️</span><div><div class="text-xs text-orange-400 font-bold uppercase tracking-wider">${textCasu}</div><div class="text-[10px] text-orange-500/70 font-bold uppercase tracking-wider mt-0.5">Trvání: ${celkovy_pit.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-lg font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
             sim_cas += celkovy_pit; palivo_v_nadrzi += tankovat; aktualni_pneu_nove = st.meni_pneu;
         }
     }
@@ -1314,7 +1386,7 @@ function prepocitejLiveZavodStrategii() {
     document.getElementById('gauge-fuel-avg').innerText = `${akt_prum_spotreba.toFixed(3)} L/k`;
     document.getElementById('gauge-elapsed').innerText = formatujSekundy(odjety_cas_sec);
     
-    if (zbyva_cas_sec <= 0 && !stav.format_plus_kolo) { container.innerHTML = vytvorCilovyOdznak(formatujSekundy(odjety_cas_sec), false); return; }
+    if (zbyva_cas_sec <= 0 && !stav.format_plus_kolo) { container.innerHTML = vytvorCilovyOdznak(getAbsolutniNeboRelativniCasDlouhy(odjety_cas_sec), false); return; }
     
     let sim_cas = odjety_cas_sec; let sim_palivo = stav.palivo_v_aute; let s_idx = stav.idx_aktualniho_jezdce; let s_cislo = s_idx + 1;
     let predpoved_celkem_kol = stav.posledni_zapsane_kolo; let pitstops_list = [];
@@ -1361,10 +1433,12 @@ function prepocitejLiveZavodStrategii() {
             let c_pit_total = (tankovat / stav.auto_data.rychlost_tankovani_l_za_s) + c_pit_base;
             pitstops_list.push({ c_pit_total: c_pit_total, tankovat: tankovat });
 
-            let pit_time_str = formatujCasKratsi(sim_cas);
-
-            if (sim_cas + c_pit_total >= celkovy_cas_zavodu && !stav.format_plus_kolo) { outHTML_Normal += vytvorCilovyOdznak(formatujSekundy(sim_cas), false); break; }
-            outHTML_Normal += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl">🛠️</span><div><div class="text-[11px] text-orange-400 font-bold uppercase">BOX v čase ${pit_time_str}</div><div class="text-[9px] text-orange-500/80 uppercase mt-0.5">Trvání: ${c_pit_total.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-sm font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
+            if (sim_cas + c_pit_total >= celkovy_cas_zavodu && !stav.format_plus_kolo) { outHTML_Normal += vytvorCilovyOdznak(getAbsolutniNeboRelativniCasDlouhy(sim_cas), false); break; }
+            
+            let pit_time_str = getAbsolutniNeboRelativniCas(sim_cas);
+            let textCasu = stav.start_time_sec !== null ? `BOX v ${pit_time_str}` : `BOX v čase ${pit_time_str}`;
+            
+            outHTML_Normal += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl">🛠️</span><div><div class="text-[11px] text-orange-400 font-bold uppercase">${textCasu}</div><div class="text-[9px] text-orange-500/80 uppercase mt-0.5">Trvání: ${c_pit_total.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-sm font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
             sim_cas += c_pit_total; sim_palivo += tankovat; s_idx++; s_cislo++;
         }
     }
