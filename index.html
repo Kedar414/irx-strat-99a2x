@@ -401,6 +401,9 @@
                 </div>
             </div>
 
+            <!-- LIVE FAIR SHARE PANEL -->
+            <div id="live-fair-share-panel" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-4"></div>
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 <div class="lg:col-span-4 xl:col-span-3 space-y-6">
@@ -543,7 +546,7 @@ let stav = {
     isLiveMode: false, trat_jmeno: "", auto_jmeno: "", delka_zavodu_hod: 6.0, format_plus_kolo: true,
     start_time_str: "", start_time_sec: null,
     auto_data: {}, trat_data: {}, jezdci: [], stinty: [], raw_laps: [], suma_casu: 0, suma_paliva: 0,
-    historie_kol: [], posledni_zapsane_kolo: 0, palivo_v_aute: 0.0, idx_aktualniho_jezdce: 0, kolo_posledniho_pitu: 0, report_pitstopy: [],
+    historie_kol: [], laps_by_driver: {}, posledni_zapsane_kolo: 0, palivo_v_aute: 0.0, idx_aktualniho_jezdce: 0, kolo_posledniho_pitu: 0, report_pitstopy: [],
     aktualni_setup: { 
         p_fl: "", p_fr: "", p_rl: "", p_rr: "", 
         c_fl: "", c_fr: "", c_rl: "", c_rr: "",
@@ -1156,6 +1159,9 @@ function prepocitejPredpovedZavodu() {
     let prum_spotreba = stav.jezdci.reduce((sum, j) => sum + j.spotreba, 0) / stav.jezdci.length;
     document.getElementById('gauge-fuel-avg').innerText = `${prum_spotreba.toFixed(3)} L/k`; document.getElementById('badge-calibration').classList.add('hidden'); 
     
+    // Příprava logiky pro FAIR SHARE TRACKING
+    let driverLaps = {}; stav.jezdci.forEach(j => driverLaps[j.jmeno] = 0);
+
     for (let i = 0; i < stav.stinty.length; i++) {
         let st = stav.stinty[i]; let jzd = stav.jezdci.find(j => j.jmeno === st.jezdec_jmeno) || stav.jezdci[0];
         let max_kola_na_palivo = Math.floor((palivo_v_nadrzi - 1.5) / jzd.spotreba);
@@ -1165,6 +1171,9 @@ function prepocitejPredpovedZavodu() {
         let cas_stintu = optimalizovana_kola * jzd.cas; sim_cas += cas_stintu; celkem_kol += optimalizovana_kola;
         let cas_do = getAbsolutniNeboRelativniCasDlouhy(sim_cas); 
         
+        // Fair Share evidence (přičítáme naplánovaná kola)
+        driverLaps[st.jezdec_jmeno] = (driverLaps[st.jezdec_jmeno] || 0) + optimalizovana_kola;
+
         let pneuBadge = aktualni_pneu_nove ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">🛞 NOVÉ PNEU</span>` : `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30">♻️ POUŽITÉ PNEU</span>`;
         let cardBorder = aktualni_pneu_nove ? "border-emerald-500/40 shadow-emerald-500/5" : "border-slate-700";
 
@@ -1194,7 +1203,31 @@ function prepocitejPredpovedZavodu() {
         }
     }
     
-    container.innerHTML = `<div class="max-w-3xl mx-auto w-full">${outHTML}</div>`;
+    // GENERACE HTML PRO KONTROLU FAIR SHARE (Preview Mode)
+    let fs_min = Math.ceil((celkem_kol / stav.jezdci.length) * 0.25);
+    let fsHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6 shadow-xl">
+        <h4 class="font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2 flex items-center gap-2 uppercase tracking-wider">
+            <span>⚖️</span> KONTROLA FAIR SHARE (Min: ${fs_min} kol)
+        </h4>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">`;
+    
+    stav.jezdci.forEach(j => {
+        let pLaps = driverLaps[j.jmeno] || 0;
+        let isOk = pLaps >= fs_min;
+        let colorClass = isOk ? "text-emerald-400" : "text-red-400";
+        // Pokud jezdec nesplňuje podíly, pole bude červené a varovat
+        let borderClass = isOk ? "border-emerald-500/30 bg-emerald-950/10" : "border-red-500/50 bg-red-950/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]";
+        let icon = isOk ? "✅ SPLNĚNO" : "⚠️ NESPLNÍ";
+
+        fsHTML += `<div class="p-3 border rounded-xl ${borderClass} flex flex-col justify-center transition-all">
+            <span class="text-[11px] text-slate-300 font-bold uppercase truncate w-full text-center">${j.jmeno}</span>
+            <span class="text-2xl font-mono font-bold mt-1 text-center ${colorClass}">${pLaps} <span class="text-xs text-slate-500">/ ${fs_min}</span></span>
+            <span class="text-[9px] font-bold text-center ${isOk ? 'text-emerald-500' : 'text-red-500 animate-pulse'} uppercase mt-2 tracking-wider">${icon}</span>
+        </div>`;
+    });
+    fsHTML += `</div></div>`;
+
+    container.innerHTML = `<div class="max-w-3xl mx-auto w-full">${fsHTML}${outHTML}</div>`;
     document.getElementById('gauge-remaining').innerText = formatujSekundy(Math.max(0, celkovy_cas_sec - sim_cas));
     document.getElementById('gauge-laps').innerText = `0 / ${celkem_kol} kol`;
 }
@@ -1286,9 +1319,21 @@ function zmenPneuVLiveModu(idx, isChecked) { if (stav.stinty[idx]) { stav.stinty
 function zpracujLiveData() {
     stav.raw_laps.sort((a, b) => a.kolo - b.kolo);
     stav.palivo_v_aute = stav.auto_data.nadrz_l; stav.suma_casu = 0; stav.suma_paliva = 0; stav.idx_aktualniho_jezdce = 0; stav.kolo_posledniho_pitu = 0; stav.report_pitstopy = []; stav.historie_kol = [];
+    
+    // Obnovení stavu pro live FAIR SHARE
+    stav.laps_by_driver = {};
+    stav.jezdci.forEach(j => stav.laps_by_driver[j.jmeno] = 0);
 
     stav.raw_laps.forEach(lap => {
         let aktJezdecJmeno = stav.stinty[stav.idx_aktualniho_jezdce] ? stav.stinty[stav.idx_aktualniho_jezdce].jezdec_jmeno : "Tým";
+        
+        // Zaznamenání odjetého kola aktuálnímu pilotovi pro Fair Share
+        if(stav.laps_by_driver[aktJezdecJmeno] !== undefined) {
+            stav.laps_by_driver[aktJezdecJmeno]++;
+        } else {
+            stav.laps_by_driver[aktJezdecJmeno] = 1;
+        }
+
         let isRepair = false, isOutlap = false;
         let prevLap = stav.raw_laps.find(l => l.kolo === lap.kolo - 1);
         if (prevLap) { if (prevLap.isCrash) isRepair = true; else if (prevLap.isPit) isOutlap = true; }
@@ -1441,6 +1486,33 @@ function prepocitejLiveZavodStrategii() {
             outHTML_Normal += `<div class="bg-orange-950/40 border-2 border-orange-500/50 rounded-xl p-3 ml-6 mr-6 mb-4 shadow-lg flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl">🛠️</span><div><div class="text-[11px] text-orange-400 font-bold uppercase">${textCasu}</div><div class="text-[9px] text-orange-500/80 uppercase mt-0.5">Trvání: ${c_pit_total.toFixed(1)}s</div></div></div><div class="text-right"><div class="text-sm font-mono font-bold text-orange-400">+${tankovat.toFixed(1)} L</div></div></div>`;
             sim_cas += c_pit_total; sim_palivo += tankovat; s_idx++; s_cislo++;
         }
+    }
+
+    // --- ZOBRAZENÍ LIVE FAIR SHARE PANELU ---
+    let fs_min = Math.ceil((predpoved_celkem_kol / stav.jezdci.length) * 0.25);
+    let liveFsPanel = document.getElementById('live-fair-share-panel');
+    
+    if (stav.isLiveMode) {
+        liveFsPanel.classList.remove('hidden');
+        let fsHTML = '';
+        stav.jezdci.forEach(j => {
+            let driven = stav.laps_by_driver[j.jmeno] || 0;
+            let isOk = driven >= fs_min;
+            let bgClass = isOk ? "bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "bg-slate-900 border-slate-800";
+            let textClass = isOk ? "text-emerald-400" : "text-amber-400";
+            let icon = isOk ? "✅" : "⏳";
+            
+            fsHTML += `<div class="flex items-center justify-between p-3 rounded-xl border transition-all ${bgClass}">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${j.jmeno}</span>
+                    <span class="text-xl font-mono font-bold ${textClass}">${driven} <span class="text-[11px] text-slate-500">/ ${fs_min}</span></span>
+                </div>
+                <span class="text-xl opacity-80">${icon}</span>
+            </div>`;
+        });
+        liveFsPanel.innerHTML = fsHTML;
+    } else {
+        liveFsPanel.classList.add('hidden');
     }
 
     let ecoHTML = '';
@@ -1637,6 +1709,7 @@ function prejdiDoSetupu() {
     document.getElementById('btn-lock-race').classList.remove('hidden'); document.getElementById('live-action-buttons').classList.add('hidden');
     document.getElementById('pre-race-editor').classList.remove('hidden'); document.getElementById('live-race-form').classList.add('hidden');
     document.getElementById('panel-left-title').innerHTML = "<span>📋</span> MODELACE STRATEGIE"; document.getElementById('live-fuel-badge').classList.add('hidden');
+    document.getElementById('live-fair-share-panel').classList.add('hidden');
 }
 
 function otevriReportModal() { document.getElementById('report-notes').value = ''; document.getElementById('report-modal').classList.remove('hidden'); }
