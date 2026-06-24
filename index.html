@@ -256,6 +256,61 @@
                 </div>
             </div>
 
+            <!-- TIRE WIDGET (Novinka) -->
+            <div id="live-tires-widget" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl mt-4">
+                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2 justify-center"><span>🛞</span> Telemetrie Pneumatik (I / M / O)</h4>
+                <div class="grid grid-cols-2 gap-x-12 gap-y-6 max-w-md mx-auto">
+                    <!-- FL -->
+                    <div class="flex flex-col items-center gap-1.5">
+                        <div class="flex justify-between w-full px-2">
+                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">FL</span>
+                            <span id="tire-fl-val" class="text-xs font-mono text-white font-bold">--°C</span>
+                        </div>
+                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner">
+                            <div id="tire-fl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-fl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-fl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                        </div>
+                    </div>
+                    <!-- FR -->
+                    <div class="flex flex-col items-center gap-1.5">
+                        <div class="flex justify-between w-full px-2">
+                            <span id="tire-fr-val" class="text-xs font-mono text-white font-bold">--°C</span>
+                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">FR</span>
+                        </div>
+                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
+                            <div id="tire-fr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-fr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-fr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                        </div>
+                    </div>
+                    <!-- RL -->
+                    <div class="flex flex-col items-center gap-1.5">
+                        <div class="flex justify-between w-full px-2">
+                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">RL</span>
+                            <span id="tire-rl-val" class="text-xs font-mono text-white font-bold">--°C</span>
+                        </div>
+                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner">
+                            <div id="tire-rl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-rl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-rl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                        </div>
+                    </div>
+                    <!-- RR -->
+                    <div class="flex flex-col items-center gap-1.5">
+                        <div class="flex justify-between w-full px-2">
+                            <span id="tire-rr-val" class="text-xs font-mono text-white font-bold">--°C</span>
+                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">RR</span>
+                        </div>
+                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
+                            <div id="tire-rr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-rr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            <div id="tire-rr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- FAIR SHARE PANEL -->
             <div id="live-fair-share-panel" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-4"></div>
 
@@ -447,7 +502,7 @@
             <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full p-4 md:p-6 shadow-[0_0_50px_rgba(0,0,0,0.6)] relative my-4">
                 <button onclick="zavriCarSetupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-red-400 text-3xl font-semibold transition-colors z-10">&times;</button>
                 <h2 class="text-lg font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-800 pb-3 mb-6 flex items-center gap-2"><span>🔧</span> Závodní Geometrie & Aero Setup</h2>
-                <!-- Setup forms skipped here for brevity, keeping existing code logic inside -->
+                <!-- Setup forms -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
                     <div class="space-y-6 flex flex-col justify-between z-10">
                         <div class="bg-slate-950 border border-slate-700 p-4 rounded-xl shadow-inner relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div><h4 class="text-[11px] font-bold text-slate-300 mb-3 uppercase tracking-wider border-b border-slate-800 pb-1">Levé Přední (FL)</h4><div class="space-y-2"><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Tlak (psi/bar)</span><input id="set-p-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-emerald-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-emerald-500"></div><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Odklon (Camber)</span><input id="set-c-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-red-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-red-500"></div><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Sbíhavost (Toe)</span><input id="set-t-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-blue-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-blue-500"></div></div></div>
@@ -483,7 +538,7 @@
                                     <div><label class="block text-[11px] text-slate-400 mb-1">Ztráta v boxech (sec)</label><input id="db-track-loss" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
                                     <div><label class="block text-[11px] text-slate-400 mb-1">Celkový počet zatáček</label><input id="db-track-corners" type="number" min="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
                                 </div>
-                                <div><label class="block text-[11px] text-slate-400 mb-1">URL obrázku (volitelné)</label><input id="db-track-img" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                                <div><label class="block text-[11px] text-slate-400 mb-1">URL obrázku tratě (volitelné)</label><input id="db-track-img" type="text" placeholder="https://odkaz-na-obrazek.jpg" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
                             </div>
                             <button onclick="pridejTratDoDB()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit trať</button>
                         </div>
@@ -497,7 +552,7 @@
                                 <div><label class="block text-[11px] text-slate-400 mb-1">Kapacita nádrže (L)</label><input id="db-car-tank" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
                                 <div><label class="block text-[11px] text-slate-400 mb-1">Tankování (L/s)</label><input id="db-car-speed" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
                                 <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">Čistý čas výměny pneu (sec)</label><input id="db-car-tyre" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
-                                <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">URL obrázku (volitelné)</label><input id="db-car-img" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                                <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">URL obrázku auta (volitelné)</label><input id="db-car-img" type="text" placeholder="https://odkaz-na-obrazek.jpg" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
                             </div>
                             <button onclick="pridejAutoDoDB()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit auto</button>
                         </div>
@@ -705,7 +760,9 @@ function showClientDashboard() {
     let btnUkoncit = document.getElementById('btn-terminate-race'); if (btnUkoncit) { btnUkoncit.innerText = "ODPOJIT SE"; btnUkoncit.setAttribute("onclick", "odpojitZRelace()"); }
     let btnReport = document.getElementById('btn-report-modal'); if (btnReport) btnReport.classList.add('hidden');
     let btnBack = document.getElementById('btn-back-setup'); if (btnBack) btnBack.classList.add('hidden');
+    
     document.getElementById('live-telemetry-widget').classList.remove('hidden');
+    document.getElementById('live-tires-widget').classList.remove('hidden');
     
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii(); zpracujLiveData();
 }
@@ -1005,6 +1062,7 @@ function generujStrategii() {
     // Skrytí live specifických modulů pro Preview (2. okno)
     document.getElementById('live-last-lap-widget').classList.add('hidden');
     document.getElementById('live-lap-history-wrapper').classList.add('hidden');
+    document.getElementById('live-tires-widget').classList.add('hidden');
     
     let preEditor = document.getElementById('pre-race-editor'); preEditor.classList.remove('hidden');
     let outHTML = '<h4 class="text-sm font-bold text-blue-400 mb-3 border-b border-blue-500/20 pb-2 uppercase tracking-wider">Editor Stintů před startem</h4>';
@@ -1034,12 +1092,13 @@ function zamkniASpustZavod() {
     document.getElementById('btn-lock-race').classList.add('hidden'); document.getElementById('live-action-buttons').classList.remove('hidden');
     document.getElementById('live-lap-num').value = 1; document.getElementById('live-telemetry-widget').classList.remove('hidden');
 
-    // Zapnutí LIVE modulu (Sbalovací strategie s výpočtem, Poslední kolo, atd.)
+    // Zapnutí LIVE modulu (Sbalovací strategie s výpočtem, Poslední kolo, Pneu atd.)
     document.getElementById('preview-strategy-header').classList.add('hidden');
     document.getElementById('live-strategy-summary').classList.remove('hidden');
     document.getElementById('live-strategy-details').classList.remove('border-none', 'shadow-none');
     
     document.getElementById('live-last-lap-widget').classList.remove('hidden');
+    document.getElementById('live-tires-widget').classList.remove('hidden');
     document.getElementById('live-lap-history-wrapper').classList.remove('hidden'); document.getElementById('live-laps-history-tbody').innerHTML = '';
 
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii();
@@ -1062,11 +1121,34 @@ function prejdiDoSetupu() {
     document.getElementById('live-race-form').classList.add('hidden'); document.getElementById('live-lap-history-wrapper').classList.add('hidden');
     document.getElementById('live-fair-share-panel').classList.add('hidden'); document.getElementById('live-telemetry-widget').classList.add('hidden');
     document.getElementById('live-last-lap-widget').classList.add('hidden');
+    document.getElementById('live-tires-widget').classList.add('hidden');
 }
 
 // ==================== ZPRACOVÁNÍ LIVE DAT A PYTHONU ====================
+
+// POMOCNÁ FUNKCE NA PROBARVENÍ PNEU
+function getTireColorClass(temp) {
+    if (!temp || temp < 60) return 'bg-blue-600';     // Studená
+    if (temp >= 60 && temp <= 75) return 'bg-emerald-300'; // Zahřívá se
+    if (temp > 75 && temp <= 100) return 'bg-emerald-500'; // Ideální
+    if (temp > 100 && temp <= 110) return 'bg-orange-500'; // Začíná hřát
+    if (temp > 110) return 'bg-red-500';              // Přehřátá
+    return 'bg-slate-700'; // Výchozí / bez dat
+}
+
+function updateTireDisplay(pos, tempI, tempM, tempO) {
+    let avg = null;
+    if (tempI > 0 || tempM > 0 || tempO > 0) avg = Math.round(((tempI||0) + (tempM||0) + (tempO||0)) / 3);
+    
+    document.getElementById(`tire-${pos}-i`).className = `w-1/3 h-full rounded-[1px] transition-colors ${getTireColorClass(tempI)}`;
+    document.getElementById(`tire-${pos}-m`).className = `w-1/3 h-full rounded-[1px] transition-colors ${getTireColorClass(tempM)}`;
+    document.getElementById(`tire-${pos}-o`).className = `w-1/3 h-full rounded-[1px] transition-colors ${getTireColorClass(tempO)}`;
+    document.getElementById(`tire-${pos}-val`).innerText = (avg !== null && avg > 0) ? `${avg}°C` : "--°C";
+}
+
 function zpracujLiveTelemetriiZPythonu(tel) {
     document.getElementById('live-telemetry-widget').classList.remove('hidden');
+    document.getElementById('live-tires-widget').classList.remove('hidden');
 
     let d = tel.delta_live;
     let deltaBox = document.getElementById('tel-delta-box');
@@ -1078,6 +1160,12 @@ function zpracujLiveTelemetriiZPythonu(tel) {
     document.getElementById('tel-fuel').innerText = tel.fuel_level_l.toFixed(2) + " L";
     document.getElementById('tel-temps').innerText = tel.temp_track_c.toFixed(1) + "° / " + tel.temp_air_c.toFixed(1) + "°";
     document.getElementById('tel-incs').innerText = tel.incidents_team + "x";
+    
+    // AKTUALIZACE PNEUMATIK
+    updateTireDisplay('fl', tel.temp_fl_i, tel.temp_fl_m, tel.temp_fl_o);
+    updateTireDisplay('fr', tel.temp_fr_i, tel.temp_fr_m, tel.temp_fr_o);
+    updateTireDisplay('rl', tel.temp_rl_i, tel.temp_rl_m, tel.temp_rl_o);
+    updateTireDisplay('rr', tel.temp_rr_i, tel.temp_rr_m, tel.temp_rr_o);
     
     let wetnessEl = document.getElementById('tel-wetness');
     let yellowFlag = document.getElementById('tel-yellow-flag');
