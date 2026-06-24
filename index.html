@@ -165,7 +165,6 @@
                         </button>
                     </div>
 
-                    <!-- ZMĚNA: Odstraněny obrázky map a aut z prewiev/setupu -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-5 shadow-inner flex flex-col sm:flex-row items-center justify-between gap-6 relative">
                             <div class="text-center sm:text-left">
@@ -276,17 +275,15 @@
                         <details class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg group">
                             <summary class="p-4 cursor-pointer focus:outline-none flex justify-between items-center bg-slate-800/50 hover:bg-slate-800 transition-colors">
                                 <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2"><span>🛞</span> Operativní výměna pneu</h4>
-                                <!-- ZMĚNA: Rotuje pouze šipka, žádný text -->
                                 <span class="text-slate-400 text-xs font-bold transition-transform duration-300 group-open:rotate-180 inline-block">▼</span>
                             </summary>
                             <div id="live-tire-editor-content" class="p-4 pt-2 border-t border-slate-800 space-y-2 max-h-[150px] overflow-y-auto"></div>
                         </details>
 
-                        <!-- ROZBALOVACÍ MANUÁLNÍ ZÁPIS KOLA (Rozšířený o Sektory) -->
+                        <!-- ROZBALOVACÍ MANUÁLNÍ ZÁPIS KOLA -->
                         <details class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg group">
                             <summary class="p-4 cursor-pointer focus:outline-none flex justify-between items-center bg-slate-800/50 hover:bg-slate-800 transition-colors">
                                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><span>⌨️</span> Manuální zápis / Úprava kola</h4>
-                                <!-- ZMĚNA: Rotuje pouze šipka, žádný text -->
                                 <span class="text-slate-400 text-xs font-bold transition-transform duration-300 group-open:rotate-180 inline-block">▼</span>
                             </summary>
                             <div class="p-4 border-t border-slate-800">
@@ -347,34 +344,73 @@
                 <!-- PRAVÝ SLOUPEC (Strategie a Historie Kol) -->
                 <div class="lg:col-span-7 xl:col-span-8 space-y-6">
 
-                    <!-- ZMĚNA: STRATEGIE SE SUMMARY (Pevný blok, nesrolovací, tak jak to bylo úplně původně) -->
-                    <div class="bg-slate-900 border border-blue-500/50 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.1)] overflow-hidden">
-                        <div class="p-5 flex justify-between items-center bg-gradient-to-r from-blue-900/40 to-slate-900 border-b border-slate-800">
-                            <div class="flex-1 grid grid-cols-2 gap-4 divide-x divide-blue-500/30">
-                                <div>
-                                    <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Příští Box / Tankování</h3>
-                                    <div id="sum-next-pit" class="text-xl md:text-2xl font-mono font-bold text-white">Počítám...</div>
-                                </div>
-                                <div class="pl-4">
-                                    <h3 class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Status Alternativní ECO</h3>
-                                    <div id="sum-eco-plan" class="text-sm font-bold text-slate-300 flex items-center h-full">Počítám...</div>
-                                </div>
+                    <!-- WIDGET POSLEDNÍ KOLO (Viditelné jen v LIVE) -->
+                    <div id="live-last-lap-widget" class="hidden bg-slate-900 border border-purple-500/30 rounded-xl p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">⏱️</span>
+                            <div>
+                                <h4 class="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Poslední Kolo</h4>
+                                <span id="last-lap-time" class="text-2xl font-mono font-bold text-white">-:--.---</span>
                             </div>
                         </div>
-                        <div class="p-5 bg-slate-950">
-                            <!-- Zde se vygenerují stinty napevno, rovnou zobrazené -->
-                            <div id="timeline-container" class="space-y-4"></div>
+                        <div class="flex gap-3 sm:gap-6 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 shadow-inner w-full sm:w-auto justify-center">
+                            <div class="text-center">
+                                <span class="text-[9px] uppercase text-slate-500 font-bold block mb-0.5">Sektor 1</span>
+                                <span id="last-lap-s1" class="text-sm font-mono text-slate-300">-</span>
+                            </div>
+                            <div class="text-center border-l border-slate-800 pl-3 sm:pl-6">
+                                <span class="text-[9px] uppercase text-slate-500 font-bold block mb-0.5">Sektor 2</span>
+                                <span id="last-lap-s2" class="text-sm font-mono text-slate-300">-</span>
+                            </div>
+                            <div class="text-center border-l border-slate-800 pl-3 sm:pl-6">
+                                <span class="text-[9px] uppercase text-slate-500 font-bold block mb-0.5">Sektor 3</span>
+                                <span id="last-lap-s3" class="text-sm font-mono text-slate-300">-</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- HISTORIE KOL S DELTAMI A SEKTORY -->
-                    <div id="live-lap-history-wrapper" class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg flex flex-col h-[500px] hidden">
-                        <div class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
-                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>⏱️</span> Historie Kol & Sektory</h4>
-                            <span id="live-fuel-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold font-mono"></span>
+                    <!-- BLOK STRATEGIE: Chytře se mění mezi Preview (pevné) a Live (srolovací) -->
+                    <div id="strategy-block" class="bg-slate-900 border border-blue-500/50 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.1)] overflow-hidden">
+                        
+                        <!-- PREVIEW (2. okno) hlavička bez boxů -->
+                        <div id="preview-strategy-header" class="hidden p-4 bg-slate-800 border-b border-slate-700">
+                            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>📊</span> Navržená Strategie (Preview)</h3>
                         </div>
-                        <div class="flex-1 overflow-auto">
-                            <table class="w-full text-left border-collapse text-[10px] whitespace-nowrap">
+
+                        <!-- LIVE (3. okno) hlavička s boxy a možností srolování -->
+                        <details id="live-strategy-details" class="group" open>
+                            <summary id="live-strategy-summary" class="p-0 cursor-pointer focus:outline-none hidden">
+                                <div class="p-5 flex justify-between items-center bg-gradient-to-r from-blue-900/40 to-slate-900 border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                                    <div class="flex-1 grid grid-cols-2 gap-4 divide-x divide-blue-500/30">
+                                        <div>
+                                            <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Příští Box / Tankování</h3>
+                                            <div id="sum-next-pit" class="text-xl md:text-2xl font-mono font-bold text-white">Počítám...</div>
+                                        </div>
+                                        <div class="pl-4">
+                                            <h3 class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Status Alternativní ECO</h3>
+                                            <div id="sum-eco-plan" class="text-sm font-bold text-slate-300 flex items-center h-full">Počítám...</div>
+                                        </div>
+                                    </div>
+                                    <span class="text-slate-400 text-xs font-bold transition-transform duration-300 group-open:rotate-180 ml-4 inline-block">▼</span>
+                                </div>
+                            </summary>
+                            <div class="p-5 bg-slate-950">
+                                <div id="timeline-container" class="space-y-4"></div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- HISTORIE KOL S DELTAMI A SEKTORY (Srolovací - details) -->
+                    <details id="live-lap-history-wrapper" class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg flex flex-col hidden group" open>
+                        <summary class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors focus:outline-none">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>⏱️</span> Historie Kol & Sektory</h4>
+                            <div class="flex items-center gap-3">
+                                <span id="live-fuel-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold font-mono"></span>
+                                <span class="text-slate-400 text-xs font-bold transition-transform duration-300 group-open:rotate-180 inline-block">▼</span>
+                            </div>
+                        </summary>
+                        <div class="overflow-auto max-h-[400px] bg-slate-950 rounded-b-xl">
+                            <table class="w-full text-left border-collapse text-[10px] whitespace-nowrap relative">
                                 <thead class="sticky top-0 bg-slate-900 shadow-md z-10 text-slate-500 border-b border-slate-800">
                                     <tr>
                                         <th class="p-2 text-center">L</th>
@@ -390,7 +426,7 @@
                                 <tbody id="live-laps-history-tbody" class="divide-y divide-slate-800/50"></tbody>
                             </table>
                         </div>
-                    </div>
+                    </details>
 
                 </div>
             </div>
@@ -626,6 +662,12 @@ function showClientDashboard() {
     document.getElementById('active-screen-tag').innerText = "LIVE MULTIPLAYER KLIENT"; 
     document.getElementById('pre-race-editor').classList.add('hidden'); document.getElementById('live-race-form').classList.remove('hidden');
     document.getElementById('btn-lock-race').classList.add('hidden'); document.getElementById('live-action-buttons').classList.remove('hidden');
+    
+    // Zapnout live zobrazení UI elementů
+    document.getElementById('preview-strategy-header').classList.add('hidden');
+    document.getElementById('live-strategy-summary').classList.remove('hidden');
+    document.getElementById('live-last-lap-widget').classList.remove('hidden');
+    
     let btnUkoncit = document.getElementById('btn-terminate-race'); if (btnUkoncit) { btnUkoncit.innerText = "ODPOJIT SE"; btnUkoncit.setAttribute("onclick", "odpojitZRelace()"); }
     let btnReport = document.getElementById('btn-report-modal'); if (btnReport) btnReport.classList.add('hidden');
     let btnBack = document.getElementById('btn-back-setup'); if (btnBack) btnBack.classList.add('hidden');
@@ -908,6 +950,12 @@ function generujStrategii() {
     document.getElementById('screen-setup').classList.add('hidden'); document.getElementById('screen-dashboard').classList.remove('hidden');
     document.getElementById('active-screen-tag').innerText = "Optimalizovaný Plán";
     
+    // Přepnutí UI do "Preview" módu (odkrytí čisté hlavičky, skrytí live widgetů a live boxíků)
+    document.getElementById('preview-strategy-header').classList.remove('hidden');
+    document.getElementById('live-strategy-summary').classList.add('hidden');
+    document.getElementById('live-strategy-details').open = true; // Pojistka, aby to bylo otevřené a nešlo zavřít
+    document.getElementById('live-last-lap-widget').classList.add('hidden');
+    
     let preEditor = document.getElementById('pre-race-editor'); preEditor.classList.remove('hidden');
     let outHTML = '<h4 class="text-sm font-bold text-blue-400 mb-3 border-b border-blue-500/20 pb-2 uppercase tracking-wider">Editor Stintů před startem</h4>';
     stav.stinty.forEach((st, idx) => {
@@ -937,6 +985,11 @@ function zamkniASpustZavod() {
     document.getElementById('live-lap-num').value = 1; document.getElementById('live-telemetry-widget').classList.remove('hidden');
     document.getElementById('live-lap-history-wrapper').classList.remove('hidden'); document.getElementById('live-laps-history-tbody').innerHTML = '';
 
+    // Zapnutí LIVE modulu (Sbalovací strategie, Last lap info atd.)
+    document.getElementById('preview-strategy-header').classList.add('hidden');
+    document.getElementById('live-strategy-summary').classList.remove('hidden');
+    document.getElementById('live-last-lap-widget').classList.remove('hidden');
+
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii();
 }
 
@@ -956,6 +1009,7 @@ function prejdiDoSetupu() {
     document.getElementById('btn-lock-race').classList.remove('hidden'); document.getElementById('live-action-buttons').classList.add('hidden');
     document.getElementById('live-race-form').classList.add('hidden'); document.getElementById('live-lap-history-wrapper').classList.add('hidden');
     document.getElementById('live-fair-share-panel').classList.add('hidden'); document.getElementById('live-telemetry-widget').classList.add('hidden');
+    document.getElementById('live-last-lap-widget').classList.add('hidden');
 }
 
 // ==================== ZPRACOVÁNÍ LIVE DAT A PYTHONU ====================
@@ -1079,6 +1133,20 @@ function zpracujLiveData() {
         </tr>`;
     }); tbody.innerHTML = outHTML;
     
+    // AKTUALIZACE WIDGETU POSLEDNÍHO KOLA
+    if (stav.raw_laps.length > 0) {
+        let lastLap = stav.raw_laps[stav.raw_laps.length - 1];
+        document.getElementById('last-lap-time').innerText = formatujCasKola(lastLap.cas);
+        document.getElementById('last-lap-s1').innerHTML = lastLap.s1 > 0 ? lastLap.s1.toFixed(3) : `<span class="text-slate-600">-</span>`;
+        document.getElementById('last-lap-s2').innerHTML = lastLap.s2 > 0 ? lastLap.s2.toFixed(3) : `<span class="text-slate-600">-</span>`;
+        document.getElementById('last-lap-s3').innerHTML = lastLap.s3 > 0 ? lastLap.s3.toFixed(3) : `<span class="text-slate-600">-</span>`;
+    } else {
+        document.getElementById('last-lap-time').innerText = "-:--.---";
+        document.getElementById('last-lap-s1').innerHTML = "-";
+        document.getElementById('last-lap-s2').innerHTML = "-";
+        document.getElementById('last-lap-s3').innerHTML = "-";
+    }
+
     let skutecnyZustatek = Number(stav.auto_data.nadrz_l) - (Number(stav.suma_paliva) % Number(stav.auto_data.nadrz_l));
     document.getElementById('live-fuel-badge').innerText = `V NÁDRŽI: ${skutecnyZustatek.toFixed(2)} L`;
 }
@@ -1147,7 +1215,6 @@ function prepocitejLiveZavodStrategii() {
         target_stints++;
         
         if (max_kola_na_palivo >= kola_do_konce) {
-            // ZMĚNA: Přísná matematická kontrola, abychom zamezili např 321L
             let zustatekKonc = Number(simPalivo) - (Number(kola_do_konce) * Number(jzd_spotr));
             if(zustatekKonc > tank_cap) zustatekKonc = tank_cap;
             if(zustatekKonc < 0) zustatekKonc = 0;
@@ -1169,7 +1236,6 @@ function prepocitejLiveZavodStrategii() {
             let kola_po_pitu = Math.ceil((simZbyva - c_pit_base) / jzd_cas) + (stav.format_plus_kolo ? 1 : 0);
             if(kola_po_pitu < 0) kola_po_pitu = 0;
             
-            // OPRVA VÝPOČTU PALIVA PŘI PITSTOPU
             let poOdeceteniSpaleneho = Number(simPalivo) - (Number(kola_real) * Number(jzd_spotr));
             if(poOdeceteniSpaleneho < 0) poOdeceteniSpaleneho = 0;
             
