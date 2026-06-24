@@ -167,9 +167,12 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-5 shadow-inner flex flex-col sm:flex-row items-center justify-between gap-6 relative">
-                            <div class="text-center sm:text-left">
-                                <h3 class="text-[10px] font-bold text-emerald-500 mb-1 uppercase tracking-widest">Aktivní Vůz</h3>
-                                <p id="preview-car-name" class="text-lg text-slate-200 font-bold mb-4">-</p>
+                            <div class="flex items-center gap-4">
+                                <img id="preview-car-img" src="" alt="Auto" class="w-24 h-16 object-cover rounded hidden border border-slate-700">
+                                <div class="text-left">
+                                    <h3 class="text-[10px] font-bold text-emerald-500 mb-1 uppercase tracking-widest">Aktivní Vůz</h3>
+                                    <p id="preview-car-name" class="text-lg text-slate-200 font-bold mb-1">-</p>
+                                </div>
                             </div>
                             <button onclick="otevriCarSetupModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-5 py-2.5 rounded-lg border border-slate-600 transition-all uppercase tracking-wider">
                                 🔧 Upravit Setup
@@ -178,9 +181,12 @@
                         </div>
 
                         <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-5 shadow-inner flex flex-col sm:flex-row items-center justify-between gap-6">
-                            <div class="text-center sm:text-left">
-                                <h3 class="text-[10px] font-bold text-blue-500 mb-1 uppercase tracking-widest">Aktivní Trať</h3>
-                                <p id="preview-track-name" class="text-lg text-slate-200 font-bold mb-4">-</p>
+                            <div class="flex items-center gap-4">
+                                <img id="preview-track-img" src="" alt="Trať" class="w-24 h-16 object-cover rounded hidden border border-slate-700">
+                                <div class="text-left">
+                                    <h3 class="text-[10px] font-bold text-blue-500 mb-1 uppercase tracking-widest">Aktivní Trať</h3>
+                                    <p id="preview-track-name" class="text-lg text-slate-200 font-bold mb-1">-</p>
+                                </div>
                             </div>
                             <button onclick="otevriTrackInfoModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-5 py-2.5 rounded-lg border border-slate-600 transition-all uppercase tracking-wider">
                                 ℹ️ Editovat poznámky & Info
@@ -344,7 +350,7 @@
                 <!-- PRAVÝ SLOUPEC (Strategie a Historie Kol) -->
                 <div class="lg:col-span-7 xl:col-span-8 space-y-6">
 
-                    <!-- WIDGET POSLEDNÍ KOLO (Viditelné jen v LIVE) -->
+                    <!-- WIDGET POSLEDNÍ KOLO (Viditelné jen v LIVE, na vrchu) -->
                     <div id="live-last-lap-widget" class="hidden bg-slate-900 border border-purple-500/30 rounded-xl p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="flex items-center gap-3">
                             <span class="text-2xl">⏱️</span>
@@ -369,18 +375,20 @@
                         </div>
                     </div>
 
-                    <!-- BLOK STRATEGIE: Chytře se mění mezi Preview (pevné) a Live (srolovací) -->
-                    <div id="strategy-block" class="bg-slate-900 border border-blue-500/50 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.1)] overflow-hidden">
+                    <!-- BLOK STRATEGIE: Separátní pohled pro Preview vs Live -->
+                    <div id="strategy-wrapper">
                         
-                        <!-- PREVIEW (2. okno) hlavička bez boxů -->
-                        <div id="preview-strategy-header" class="hidden p-4 bg-slate-800 border-b border-slate-700">
+                        <!-- PREVIEW HLAVIČKA (Nepohyblivá, žádné výpočty boxů, jen čistý název) -->
+                        <div id="preview-strategy-header" class="hidden bg-slate-800 border-b border-slate-700 p-4 rounded-t-xl">
                             <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>📊</span> Navržená Strategie (Preview)</h3>
                         </div>
 
-                        <!-- LIVE (3. okno) hlavička s boxy a možností srolování -->
-                        <details id="live-strategy-details" class="group" open>
+                        <!-- LIVE HLAVIČKA A OBAL (Srolovací details/summary) -->
+                        <details id="live-strategy-details" class="group bg-slate-900 border border-blue-500/50 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.1)]" open>
+                            
+                            <!-- TOTO SE UKÁŽE JEN V LIVE REŽIMU -->
                             <summary id="live-strategy-summary" class="p-0 cursor-pointer focus:outline-none hidden">
-                                <div class="p-5 flex justify-between items-center bg-gradient-to-r from-blue-900/40 to-slate-900 border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                                <div class="p-5 flex justify-between items-center bg-gradient-to-r from-blue-900/40 to-slate-900 border-b border-slate-800 hover:bg-slate-800/50 transition-colors rounded-t-xl">
                                     <div class="flex-1 grid grid-cols-2 gap-4 divide-x divide-blue-500/30">
                                         <div>
                                             <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Příští Box / Tankování</h3>
@@ -394,15 +402,16 @@
                                     <span class="text-slate-400 text-xs font-bold transition-transform duration-300 group-open:rotate-180 ml-4 inline-block">▼</span>
                                 </div>
                             </summary>
-                            <div class="p-5 bg-slate-950">
+                            
+                            <div class="p-5 bg-slate-950 rounded-b-xl">
                                 <div id="timeline-container" class="space-y-4"></div>
                             </div>
                         </details>
                     </div>
 
-                    <!-- HISTORIE KOL S DELTAMI A SEKTORY (Srolovací - details) -->
-                    <details id="live-lap-history-wrapper" class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg flex flex-col hidden group" open>
-                        <summary class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors focus:outline-none">
+                    <!-- HISTORIE KOL S DELTAMI A SEKTORY (Srolovací details menu) -->
+                    <details id="live-lap-history-wrapper" class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg group hidden" open>
+                        <summary class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors focus:outline-none rounded-t-xl">
                             <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>⏱️</span> Historie Kol & Sektory</h4>
                             <div class="flex items-center gap-3">
                                 <span id="live-fuel-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold font-mono"></span>
@@ -438,6 +447,7 @@
             <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full p-4 md:p-6 shadow-[0_0_50px_rgba(0,0,0,0.6)] relative my-4">
                 <button onclick="zavriCarSetupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-red-400 text-3xl font-semibold transition-colors z-10">&times;</button>
                 <h2 class="text-lg font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-800 pb-3 mb-6 flex items-center gap-2"><span>🔧</span> Závodní Geometrie & Aero Setup</h2>
+                <!-- Setup forms skipped here for brevity, keeping existing code logic inside -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
                     <div class="space-y-6 flex flex-col justify-between z-10">
                         <div class="bg-slate-950 border border-slate-700 p-4 rounded-xl shadow-inner relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div><h4 class="text-[11px] font-bold text-slate-300 mb-3 uppercase tracking-wider border-b border-slate-800 pb-1">Levé Přední (FL)</h4><div class="space-y-2"><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Tlak (psi/bar)</span><input id="set-p-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-emerald-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-emerald-500"></div><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Odklon (Camber)</span><input id="set-c-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-red-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-red-500"></div><div class="flex justify-between items-center text-xs"><span class="text-slate-500 font-semibold">Sbíhavost (Toe)</span><input id="set-t-fl" type="text" class="w-16 bg-slate-900 border border-slate-600 rounded text-blue-400 text-right px-2 py-0.5 font-mono focus:outline-none focus:border-blue-500"></div></div></div>
@@ -465,11 +475,32 @@
                 <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2"><span>📦</span> Správa tratí a vozového parku (Garáž)</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-inner"><h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2"><span>📍</span> Nová / Upravit trať v DB</h3><div class="space-y-3 mb-4"><div><label class="block text-[11px] text-slate-400 mb-1">Název tratě</label><input id="db-track-name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-[11px] text-slate-400 mb-1">Ztráta v boxech (vteřiny)</label><input id="db-track-loss" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div><div><label class="block text-[11px] text-slate-400 mb-1">Celkový počet zatáček</label><input id="db-track-corners" type="number" min="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div></div></div><button onclick="pridejTratDoDB()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit trať</button></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-inner">
+                            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2"><span>📍</span> Nová / Upravit trať v DB</h3>
+                            <div class="space-y-3 mb-4">
+                                <div><label class="block text-[11px] text-slate-400 mb-1">Název tratě</label><input id="db-track-name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-[11px] text-slate-400 mb-1">Ztráta v boxech (sec)</label><input id="db-track-loss" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
+                                    <div><label class="block text-[11px] text-slate-400 mb-1">Celkový počet zatáček</label><input id="db-track-corners" type="number" min="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
+                                </div>
+                                <div><label class="block text-[11px] text-slate-400 mb-1">URL obrázku (volitelné)</label><input id="db-track-img" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                            </div>
+                            <button onclick="pridejTratDoDB()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit trať</button>
+                        </div>
                         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4"><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Uložené tratě v DB:</h4><div id="db-tracks-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div></div>
                     </div>
                     <div class="space-y-4">
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-inner"><h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2"><span>🏎️</span> Nové / Upravit auto v garáži</h3><div class="grid grid-cols-2 gap-3 mb-4"><div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">Název vozu</label><input id="db-car-name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div><div><label class="block text-[11px] text-slate-400 mb-1">Kapacita nádrže (L)</label><input id="db-car-tank" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div><div><label class="block text-[11px] text-slate-400 mb-1">Rychlost tankování (L/s)</label><input id="db-car-speed" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div><div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">Čistý čas výměny pneu (vteřiny)</label><input id="db-car-tyre" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div></div><button onclick="pridejAutoDoDB()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit auto</button></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-inner">
+                            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2"><span>🏎️</span> Nové / Upravit auto v garáži</h3>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">Název vozu</label><input id="db-car-name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                                <div><label class="block text-[11px] text-slate-400 mb-1">Kapacita nádrže (L)</label><input id="db-car-tank" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
+                                <div><label class="block text-[11px] text-slate-400 mb-1">Tankování (L/s)</label><input id="db-car-speed" type="number" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
+                                <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">Čistý čas výměny pneu (sec)</label><input id="db-car-tyre" type="number" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"></div>
+                                <div class="col-span-2"><label class="block text-[11px] text-slate-400 mb-1">URL obrázku (volitelné)</label><input id="db-car-img" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></div>
+                            </div>
+                            <button onclick="pridejAutoDoDB()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition-colors uppercase tracking-wider">💾 Uložit auto</button>
+                        </div>
                         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4"><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Garáž:</h4><div id="db-cars-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div></div>
                     </div>
                 </div>
@@ -516,14 +547,14 @@
 const TEAM_PIN = "456868";
 
 const DEFAULTS_TRATE = {
-    "Spa-Francorchamps": { pit_lane_loss_sec: 22.000, pocet_zatacek: 20, zatacky: {}, obecne_poznamky: "" },
-    "Le Mans": { pit_lane_loss_sec: 25.000, pocet_zatacek: 38, zatacky: {}, obecne_poznamky: "" },
-    "Nürburgring GT": { pit_lane_loss_sec: 20.000, pocet_zatacek: 16, zatacky: {}, obecne_poznamky: "" }
+    "Spa-Francorchamps": { pit_lane_loss_sec: 22.000, pocet_zatacek: 20, zatacky: {}, obecne_poznamky: "", img: "" },
+    "Le Mans": { pit_lane_loss_sec: 25.000, pocet_zatacek: 38, zatacky: {}, obecne_poznamky: "", img: "" },
+    "Nürburgring GT": { pit_lane_loss_sec: 20.000, pocet_zatacek: 16, zatacky: {}, obecne_poznamky: "", img: "" }
 };
 const DEFAULTS_AUT = {
-    "Porsche 911 GT3 R": { nadrz_l: 110.0, rychlost_tankovani_l_za_s: 3.2, cas_pneu_sec: 26.000 },
-    "Ferrari 296 GT3": { nadrz_l: 114.0, rychlost_tankovani_l_za_s: 3.0, cas_pneu_sec: 25.000 },
-    "BMW M4 GT3": { nadrz_l: 120.0, rychlost_tankovani_l_za_s: 3.1, cas_pneu_sec: 27.000 }
+    "Porsche 911 GT3 R": { nadrz_l: 110.0, rychlost_tankovani_l_za_s: 3.2, cas_pneu_sec: 26.000, img: "" },
+    "Ferrari 296 GT3": { nadrz_l: 114.0, rychlost_tankovani_l_za_s: 3.0, cas_pneu_sec: 25.000, img: "" },
+    "BMW M4 GT3": { nadrz_l: 120.0, rychlost_tankovani_l_za_s: 3.1, cas_pneu_sec: 27.000, img: "" }
 };
 
 let DB_TRATI = {}; let DB_AUT = {}; let DB_PRESETS = []; let DB_LINEUPS = []; 
@@ -580,7 +611,8 @@ function inicializujDatabazi() {
     DB_PRESETS = localPresets ? JSON.parse(localPresets) : [];
     DB_LINEUPS = localLineups ? JSON.parse(localLineups) : [];
 
-    Object.values(DB_TRATI).forEach(t => { if(t.zatacky === undefined) t.zatacky = {}; if(t.obecne_poznamky === undefined) t.obecne_poznamky = ""; if(t.pocet_zatacek === undefined) t.pocet_zatacek = 0; });
+    Object.values(DB_TRATI).forEach(t => { if(t.zatacky === undefined) t.zatacky = {}; if(t.obecne_poznamky === undefined) t.obecne_poznamky = ""; if(t.pocet_zatacek === undefined) t.pocet_zatacek = 0; if(t.img === undefined) t.img = ""; });
+    Object.values(DB_AUT).forEach(a => { if(a.img === undefined) a.img = ""; });
     
     obnovDropdownMenu(); obnovSeznamyVDB(); updatePreviews(); vykresliPresety(); vykresliLineupy();
     checkUrlRoom();
@@ -666,13 +698,15 @@ function showClientDashboard() {
     // Zapnout live zobrazení UI elementů
     document.getElementById('preview-strategy-header').classList.add('hidden');
     document.getElementById('live-strategy-summary').classList.remove('hidden');
+    document.getElementById('live-strategy-details').classList.remove('border-none', 'shadow-none');
     document.getElementById('live-last-lap-widget').classList.remove('hidden');
+    document.getElementById('live-lap-history-wrapper').classList.remove('hidden');
     
     let btnUkoncit = document.getElementById('btn-terminate-race'); if (btnUkoncit) { btnUkoncit.innerText = "ODPOJIT SE"; btnUkoncit.setAttribute("onclick", "odpojitZRelace()"); }
     let btnReport = document.getElementById('btn-report-modal'); if (btnReport) btnReport.classList.add('hidden');
     let btnBack = document.getElementById('btn-back-setup'); if (btnBack) btnBack.classList.add('hidden');
     document.getElementById('live-telemetry-widget').classList.remove('hidden');
-    document.getElementById('live-lap-history-wrapper').classList.remove('hidden');
+    
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii(); zpracujLiveData();
 }
 
@@ -690,22 +724,22 @@ function zavriDbModal() { document.getElementById('db-modal').classList.add('hid
 function obnovDropdownMenu() { const trackSelect = document.getElementById('setup-track'); const carSelect = document.getElementById('setup-car'); trackSelect.innerHTML = ''; carSelect.innerHTML = ''; Object.keys(DB_TRATI).forEach(t => trackSelect.add(new Option(t, t))); Object.keys(DB_AUT).forEach(c => carSelect.add(new Option(c, c))); }
 function obnovSeznamyVDB() { const tracksList = document.getElementById('db-tracks-list'); const carsList = document.getElementById('db-cars-list'); tracksList.innerHTML = ''; carsList.innerHTML = ''; Object.keys(DB_TRATI).forEach(name => { const tr = DB_TRATI[name]; const item = document.createElement('div'); item.className = "flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded border border-slate-800 text-xs"; item.innerHTML = `<span>${name} <span class="text-slate-500 font-mono">(${Number(tr.pit_lane_loss_sec).toFixed(3)}s)</span></span><div class="flex gap-2"><button onclick="nactitTratDoFormulare('${name}')" class="text-blue-400">✏️</button><button onclick="smazatTratZDB('${name}')" class="text-red-400">🗑️</button></div>`; tracksList.appendChild(item); }); Object.keys(DB_AUT).forEach(name => { const car = DB_AUT[name]; const item = document.createElement('div'); item.className = "flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded border border-slate-800 text-xs"; item.innerHTML = `<span>${name} <span class="text-slate-500 font-mono">(${Number(car.nadrz_l)}L)</span></span><div class="flex gap-2"><button onclick="nacistAutoDoFormulare('${name}')" class="text-emerald-400">✏️</button><button onclick="smazatAutoZDB('${name}')" class="text-red-400">🗑️</button></div>`; carsList.appendChild(item); }); }
 
-function nactitTratDoFormulare(name) { const tr = DB_TRATI[name]; document.getElementById('db-track-name').value = name; document.getElementById('db-track-loss').value = tr.pit_lane_loss_sec; document.getElementById('db-track-corners').value = tr.pocet_zatacek || 0; }
+function nactitTratDoFormulare(name) { const tr = DB_TRATI[name]; document.getElementById('db-track-name').value = name; document.getElementById('db-track-loss').value = tr.pit_lane_loss_sec; document.getElementById('db-track-corners').value = tr.pocet_zatacek || 0; document.getElementById('db-track-img').value = tr.img || ""; }
 function smazatTratZDB(name) { if(confirm(`Opravdu smazat trať: ${name}?`)) { delete DB_TRATI[name]; localStorage.setItem('iracing_custom_tracks2', JSON.stringify(DB_TRATI)); obnovDropdownMenu(); obnovSeznamyVDB(); updatePreviews(); ukazUpozorneni(`Trať smazána.`); } }
-function nacistAutoDoFormulare(name) { const car = DB_AUT[name]; document.getElementById('db-car-name').value = name; document.getElementById('db-car-tank').value = car.nadrz_l; document.getElementById('db-car-speed').value = car.rychlost_tankovani_l_za_s; document.getElementById('db-car-tyre').value = car.cas_pneu_sec; }
+function nacistAutoDoFormulare(name) { const car = DB_AUT[name]; document.getElementById('db-car-name').value = name; document.getElementById('db-car-tank').value = car.nadrz_l; document.getElementById('db-car-speed').value = car.rychlost_tankovani_l_za_s; document.getElementById('db-car-tyre').value = car.cas_pneu_sec; document.getElementById('db-car-img').value = car.img || ""; }
 function smazatAutoZDB(name) { if(confirm(`Opravdu smazat auto: ${name}?`)) { delete DB_AUT[name]; localStorage.setItem('iracing_custom_cars2', JSON.stringify(DB_AUT)); obnovDropdownMenu(); obnovSeznamyVDB(); updatePreviews(); ukazUpozorneni(`Auto smazáno.`); } }
 
 function pridejTratDoDB() { 
-    const name = document.getElementById('db-track-name').value.trim(); const loss = parseFloat(document.getElementById('db-track-loss').value); const corners = parseInt(document.getElementById('db-track-corners').value) || 0; 
+    const name = document.getElementById('db-track-name').value.trim(); const loss = parseFloat(document.getElementById('db-track-loss').value); const corners = parseInt(document.getElementById('db-track-corners').value) || 0; const img = document.getElementById('db-track-img').value.trim();
     if (!name || isNaN(loss)) { ukazUpozorneni("Vyplňte platný název a ztrátu v boxech.", "error"); return; } 
     let existingCornersNotes = DB_TRATI[name]?.zatacky || {}; let existingGenNotes = DB_TRATI[name]?.obecne_poznamky || "";
-    DB_TRATI[name] = { pit_lane_loss_sec: Number(loss), pocet_zatacek: Number(corners), zatacky: existingCornersNotes, obecne_poznamky: existingGenNotes }; 
+    DB_TRATI[name] = { pit_lane_loss_sec: Number(loss), pocet_zatacek: Number(corners), zatacky: existingCornersNotes, obecne_poznamky: existingGenNotes, img: img }; 
     localStorage.setItem('iracing_custom_tracks2', JSON.stringify(DB_TRATI)); obnovDropdownMenu(); obnovSeznamyVDB(); updatePreviews(); ukazUpozorneni(`Trať uložena.`); 
 }
 function pridejAutoDoDB() { 
-    const name = document.getElementById('db-car-name').value.trim(); const tank = parseFloat(document.getElementById('db-car-tank').value); const speed = parseFloat(document.getElementById('db-car-speed').value); const tyre = parseFloat(document.getElementById('db-car-tyre').value); 
+    const name = document.getElementById('db-car-name').value.trim(); const tank = parseFloat(document.getElementById('db-car-tank').value); const speed = parseFloat(document.getElementById('db-car-speed').value); const tyre = parseFloat(document.getElementById('db-car-tyre').value); const img = document.getElementById('db-car-img').value.trim();
     if (!name || isNaN(tank) || isNaN(speed) || isNaN(tyre)) { ukazUpozorneni("Zkontrolujte číselné hodnoty auta.", "error"); return; } 
-    DB_AUT[name] = { nadrz_l: Number(tank), rychlost_tankovani_l_za_s: Number(speed), cas_pneu_sec: Number(tyre) }; 
+    DB_AUT[name] = { nadrz_l: Number(tank), rychlost_tankovani_l_za_s: Number(speed), cas_pneu_sec: Number(tyre), img: img }; 
     localStorage.setItem('iracing_custom_cars2', JSON.stringify(DB_AUT)); obnovDropdownMenu(); obnovSeznamyVDB(); updatePreviews(); ukazUpozorneni(`Auto uloženo.`); 
 }
 
@@ -714,6 +748,15 @@ function updatePreviews() {
     document.getElementById('preview-car-name').innerText = auto || "-"; 
     document.getElementById('preview-track-name').innerText = trat || "-"; 
     
+    // Aktualizace obrázků
+    const carImgEl = document.getElementById('preview-car-img');
+    const autoData = DB_AUT[auto];
+    if(autoData && autoData.img) { carImgEl.src = autoData.img; carImgEl.classList.remove('hidden'); } else { carImgEl.classList.add('hidden'); }
+    
+    const trackImgEl = document.getElementById('preview-track-img');
+    const tratData = DB_TRATI[trat];
+    if(tratData && tratData.img) { trackImgEl.src = tratData.img; trackImgEl.classList.remove('hidden'); } else { trackImgEl.classList.add('hidden'); }
+
     stav.aktualni_setup = { p_fl: "", p_fr: "", p_rl: "", p_rr: "", c_fl: "", c_fr: "", c_rl: "", c_rr: "", t_fl: "", t_fr: "", t_rl: "", t_rr: "", arb_f: "", arb_r: "", wing: "", notes: "" }; 
     document.getElementById('setup-indicator').classList.add('hidden'); 
 }
@@ -950,11 +993,18 @@ function generujStrategii() {
     document.getElementById('screen-setup').classList.add('hidden'); document.getElementById('screen-dashboard').classList.remove('hidden');
     document.getElementById('active-screen-tag').innerText = "Optimalizovaný Plán";
     
-    // Přepnutí UI do "Preview" módu (odkrytí čisté hlavičky, skrytí live widgetů a live boxíků)
+    // Přepnutí UI do "Preview" módu 
+    // - Odkrytí čisté hlavičky bez dat
     document.getElementById('preview-strategy-header').classList.remove('hidden');
+    // - Skrytí srolovací summary lišty s daty boxu a ECO
     document.getElementById('live-strategy-summary').classList.add('hidden');
-    document.getElementById('live-strategy-details').open = true; // Pojistka, aby to bylo otevřené a nešlo zavřít
+    // - Pojištění že je element details otevřený a vypadá čistě
+    document.getElementById('live-strategy-details').open = true;
+    document.getElementById('live-strategy-details').classList.add('border-none', 'shadow-none');
+    
+    // Skrytí live specifických modulů pro Preview (2. okno)
     document.getElementById('live-last-lap-widget').classList.add('hidden');
+    document.getElementById('live-lap-history-wrapper').classList.add('hidden');
     
     let preEditor = document.getElementById('pre-race-editor'); preEditor.classList.remove('hidden');
     let outHTML = '<h4 class="text-sm font-bold text-blue-400 mb-3 border-b border-blue-500/20 pb-2 uppercase tracking-wider">Editor Stintů před startem</h4>';
@@ -983,12 +1033,14 @@ function zamkniASpustZavod() {
     document.getElementById('pre-race-editor').classList.add('hidden'); document.getElementById('live-race-form').classList.remove('hidden'); 
     document.getElementById('btn-lock-race').classList.add('hidden'); document.getElementById('live-action-buttons').classList.remove('hidden');
     document.getElementById('live-lap-num').value = 1; document.getElementById('live-telemetry-widget').classList.remove('hidden');
-    document.getElementById('live-lap-history-wrapper').classList.remove('hidden'); document.getElementById('live-laps-history-tbody').innerHTML = '';
 
-    // Zapnutí LIVE modulu (Sbalovací strategie, Last lap info atd.)
+    // Zapnutí LIVE modulu (Sbalovací strategie s výpočtem, Poslední kolo, atd.)
     document.getElementById('preview-strategy-header').classList.add('hidden');
     document.getElementById('live-strategy-summary').classList.remove('hidden');
+    document.getElementById('live-strategy-details').classList.remove('border-none', 'shadow-none');
+    
     document.getElementById('live-last-lap-widget').classList.remove('hidden');
+    document.getElementById('live-lap-history-wrapper').classList.remove('hidden'); document.getElementById('live-laps-history-tbody').innerHTML = '';
 
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii();
 }
