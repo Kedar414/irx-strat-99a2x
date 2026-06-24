@@ -230,85 +230,90 @@
                 </div>
             </div>
 
-            <!-- ŘÁDEK 2: TELEMETRICKÝ WIDGET + YELLOW FLAG -->
-            <div id="live-telemetry-widget" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 shadow-xl relative overflow-hidden">
-                <!-- BLIKAJÍCÍ ŽLUTÁ VLAJKA OVERLAY -->
-                <div id="tel-yellow-flag" class="hidden absolute inset-0 z-10 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm border-2 border-yellow-500 pointer-events-none">
-                    <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(234,179,8,1)] animate-pulse">🟨 ŽLUTÁ VLAJKA 🟨</h2>
+            <!-- ŘÁDEK 2: TELEMETRIE & PNEU V JEDNOM BLOKU (Vedle sebe na PC) -->
+            <div class="flex flex-col lg:flex-row gap-4">
+                
+                <!-- TELEMETRICKÝ WIDGET -->
+                <div id="live-telemetry-widget" class="hidden flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 shadow-xl relative overflow-hidden">
+                    <!-- BLIKAJÍCÍ ŽLUTÁ VLAJKA OVERLAY -->
+                    <div id="tel-yellow-flag" class="hidden absolute inset-0 z-10 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm border-2 border-yellow-500 pointer-events-none">
+                        <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(234,179,8,1)] animate-pulse">🟨 ŽLUTÁ VLAJKA 🟨</h2>
+                    </div>
+
+                    <div class="col-span-2 md:col-span-1 flex flex-col justify-center items-center rounded-lg p-3 transition-colors duration-200" id="tel-delta-box">
+                        <span class="text-[10px] uppercase text-slate-400 font-bold tracking-widest mb-1">Live Delta (Sek)</span>
+                        <span class="text-5xl font-mono font-bold" id="tel-delta">0.000</span>
+                    </div>
+                    <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner">
+                        <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Palivo Nádrž</span>
+                        <span class="text-4xl font-mono font-bold text-white" id="tel-fuel">0.0 L</span>
+                    </div>
+                    <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner relative">
+                        <span id="tel-wetness" class="absolute top-2 right-2 text-xl hidden">🌧️</span>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Asfalt / Vzduch</span>
+                        <span class="text-3xl font-mono font-bold text-amber-500" id="tel-temps">0° / 0°</span>
+                    </div>
+                    <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner">
+                        <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Týmové Incidenty</span>
+                        <span class="text-4xl font-mono font-bold text-red-500" id="tel-incs">0x</span>
+                    </div>
                 </div>
 
-                <div class="col-span-2 md:col-span-1 flex flex-col justify-center items-center rounded-lg p-3 transition-colors duration-200" id="tel-delta-box">
-                    <span class="text-[10px] uppercase text-slate-400 font-bold tracking-widest mb-1">Live Delta (Sek)</span>
-                    <span class="text-5xl font-mono font-bold" id="tel-delta">0.000</span>
+                <!-- KOMPAKTNÍ TIRE WIDGET NA STRANĚ -->
+                <div id="live-tires-widget" class="hidden w-full lg:w-64 xl:w-72 shrink-0 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-center">
+                    <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2 justify-center"><span>🛞</span> Pneu (I / M / O)</h4>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-3 justify-center mx-auto">
+                        <!-- FL -->
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="flex justify-between w-full px-1">
+                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">FL</span>
+                                <span id="tire-fl-val" class="text-[10px] font-mono text-white font-bold">--°C</span>
+                            </div>
+                            <div class="flex gap-0.5 w-[60px] h-[40px] p-0.5 bg-slate-950 rounded border border-slate-700 shadow-inner">
+                                <div id="tire-fl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-fl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-fl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            </div>
+                        </div>
+                        <!-- FR -->
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="flex justify-between w-full px-1">
+                                <span id="tire-fr-val" class="text-[10px] font-mono text-white font-bold">--°C</span>
+                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">FR</span>
+                            </div>
+                            <div class="flex gap-0.5 w-[60px] h-[40px] p-0.5 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
+                                <div id="tire-fr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-fr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-fr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            </div>
+                        </div>
+                        <!-- RL -->
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="flex justify-between w-full px-1">
+                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">RL</span>
+                                <span id="tire-rl-val" class="text-[10px] font-mono text-white font-bold">--°C</span>
+                            </div>
+                            <div class="flex gap-0.5 w-[60px] h-[40px] p-0.5 bg-slate-950 rounded border border-slate-700 shadow-inner">
+                                <div id="tire-rl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-rl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-rl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            </div>
+                        </div>
+                        <!-- RR -->
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="flex justify-between w-full px-1">
+                                <span id="tire-rr-val" class="text-[10px] font-mono text-white font-bold">--°C</span>
+                                <span class="text-[9px] text-slate-400 font-bold tracking-widest">RR</span>
+                            </div>
+                            <div class="flex gap-0.5 w-[60px] h-[40px] p-0.5 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
+                                <div id="tire-rr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-rr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                                <div id="tire-rr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner">
-                    <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Palivo Nádrž</span>
-                    <span class="text-4xl font-mono font-bold text-white" id="tel-fuel">0.0 L</span>
-                </div>
-                <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner relative">
-                    <span id="tel-wetness" class="absolute top-2 right-2 text-xl hidden">🌧️</span>
-                    <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Asfalt / Vzduch</span>
-                    <span class="text-3xl font-mono font-bold text-amber-500" id="tel-temps">0° / 0°</span>
-                </div>
-                <div class="flex flex-col justify-center rounded-lg bg-slate-950 p-3 border border-slate-800 text-center shadow-inner">
-                    <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Týmové Incidenty</span>
-                    <span class="text-4xl font-mono font-bold text-red-500" id="tel-incs">0x</span>
-                </div>
-            </div>
 
-            <!-- TIRE WIDGET (Novinka) -->
-            <div id="live-tires-widget" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl mt-4">
-                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2 justify-center"><span>🛞</span> Telemetrie Pneumatik (I / M / O)</h4>
-                <div class="grid grid-cols-2 gap-x-12 gap-y-6 max-w-md mx-auto">
-                    <!-- FL -->
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="flex justify-between w-full px-2">
-                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">FL</span>
-                            <span id="tire-fl-val" class="text-xs font-mono text-white font-bold">--°C</span>
-                        </div>
-                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner">
-                            <div id="tire-fl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-fl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-fl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                        </div>
-                    </div>
-                    <!-- FR -->
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="flex justify-between w-full px-2">
-                            <span id="tire-fr-val" class="text-xs font-mono text-white font-bold">--°C</span>
-                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">FR</span>
-                        </div>
-                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
-                            <div id="tire-fr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-fr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-fr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                        </div>
-                    </div>
-                    <!-- RL -->
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="flex justify-between w-full px-2">
-                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">RL</span>
-                            <span id="tire-rl-val" class="text-xs font-mono text-white font-bold">--°C</span>
-                        </div>
-                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner">
-                            <div id="tire-rl-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-rl-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-rl-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                        </div>
-                    </div>
-                    <!-- RR -->
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="flex justify-between w-full px-2">
-                            <span id="tire-rr-val" class="text-xs font-mono text-white font-bold">--°C</span>
-                            <span class="text-[10px] text-slate-400 font-bold tracking-widest">RR</span>
-                        </div>
-                        <div class="flex gap-1 w-[80px] h-[50px] p-1 bg-slate-950 rounded border border-slate-700 shadow-inner flex-row-reverse">
-                            <div id="tire-rr-i" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-rr-m" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                            <div id="tire-rr-o" class="w-1/3 h-full bg-slate-800 rounded-[1px] transition-colors"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- FAIR SHARE PANEL -->
@@ -1062,6 +1067,7 @@ function generujStrategii() {
     // Skrytí live specifických modulů pro Preview (2. okno)
     document.getElementById('live-last-lap-widget').classList.add('hidden');
     document.getElementById('live-lap-history-wrapper').classList.add('hidden');
+    document.getElementById('live-telemetry-widget').classList.add('hidden');
     document.getElementById('live-tires-widget').classList.add('hidden');
     
     let preEditor = document.getElementById('pre-race-editor'); preEditor.classList.remove('hidden');
@@ -1090,15 +1096,16 @@ function zamkniASpustZavod() {
     document.getElementById('active-screen-tag').innerText = "LIVE HOST RELACE"; document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
     document.getElementById('pre-race-editor').classList.add('hidden'); document.getElementById('live-race-form').classList.remove('hidden'); 
     document.getElementById('btn-lock-race').classList.add('hidden'); document.getElementById('live-action-buttons').classList.remove('hidden');
-    document.getElementById('live-lap-num').value = 1; document.getElementById('live-telemetry-widget').classList.remove('hidden');
+    document.getElementById('live-lap-num').value = 1; 
 
     // Zapnutí LIVE modulu (Sbalovací strategie s výpočtem, Poslední kolo, Pneu atd.)
     document.getElementById('preview-strategy-header').classList.add('hidden');
     document.getElementById('live-strategy-summary').classList.remove('hidden');
     document.getElementById('live-strategy-details').classList.remove('border-none', 'shadow-none');
     
-    document.getElementById('live-last-lap-widget').classList.remove('hidden');
+    document.getElementById('live-telemetry-widget').classList.remove('hidden');
     document.getElementById('live-tires-widget').classList.remove('hidden');
+    document.getElementById('live-last-lap-widget').classList.remove('hidden');
     document.getElementById('live-lap-history-wrapper').classList.remove('hidden'); document.getElementById('live-laps-history-tbody').innerHTML = '';
 
     vykresliLiveTireEditor(); prepocitejLiveZavodStrategii();
@@ -1119,9 +1126,11 @@ function prejdiDoSetupu() {
     document.getElementById('active-screen-tag').innerText = "Konfigurace"; document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20";
     document.getElementById('btn-lock-race').classList.remove('hidden'); document.getElementById('live-action-buttons').classList.add('hidden');
     document.getElementById('live-race-form').classList.add('hidden'); document.getElementById('live-lap-history-wrapper').classList.add('hidden');
-    document.getElementById('live-fair-share-panel').classList.add('hidden'); document.getElementById('live-telemetry-widget').classList.add('hidden');
-    document.getElementById('live-last-lap-widget').classList.add('hidden');
+    document.getElementById('live-fair-share-panel').classList.add('hidden'); 
+    
+    document.getElementById('live-telemetry-widget').classList.add('hidden');
     document.getElementById('live-tires-widget').classList.add('hidden');
+    document.getElementById('live-last-lap-widget').classList.add('hidden');
 }
 
 // ==================== ZPRACOVÁNÍ LIVE DAT A PYTHONU ====================
