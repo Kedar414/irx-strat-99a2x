@@ -85,38 +85,37 @@
                         <button id="btn-db-modal" onclick="otevriDbModal()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2.5 rounded-lg border border-slate-700 transition-all uppercase tracking-wider shadow-md">
                             ⚙️ DB Garáž / Tratě
                         </button>
+                        <button id="btn-cancel-session" onclick="zrusitRelaci()" class="hidden items-center gap-2 bg-red-900/40 hover:bg-red-800 text-red-200 text-xs font-bold px-4 py-2.5 rounded-lg border border-red-900/50 transition-all uppercase tracking-wider shadow-md">
+                            ❌ Zrušit Relaci
+                        </button>
                     </div>
                 </div>
 
                 <!-- Formulář -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 items-end mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 items-end mb-6">
                     <div>
-                        <label class="block text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2">Název Eventu</label>
-                        <input id="setup-event-name" type="text" placeholder="Např. 24h Spa..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 font-bold">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Room ID</label>
-                        <input id="setup-room-id" type="text" value="alonso_team" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 focus:outline-none focus:border-blue-500 font-mono font-bold text-center">
+                        <label class="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Room ID (pro Python)</label>
+                        <input id="setup-room-id" type="text" value="alonso_team" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 focus:outline-none focus:border-blue-500 font-mono font-bold text-center disabled:opacity-50">
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Zvolená Trať</label>
-                        <select id="setup-track" onchange="aktualizujNahledy()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"></select>
+                        <select id="setup-track" onchange="aktualizujNahledy()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-50"></select>
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Závodní Auto</label>
-                        <select id="setup-car" onchange="aktualizujNahledy()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500"></select>
+                        <select id="setup-car" onchange="aktualizujNahledy()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-50"></select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Délka (hod)</label>
-                        <input id="setup-hours" type="number" step="0.5" value="6.0" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold">
+                        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Délka Závodu (hod)</label>
+                        <input id="setup-hours" type="number" step="0.5" value="6.0" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold disabled:opacity-50">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Čas startu</label>
-                        <input id="setup-start-time" type="time" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold font-mono">
+                        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Čas startu (volitelné)</label>
+                        <input id="setup-start-time" type="time" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-center font-bold font-mono disabled:opacity-50">
                     </div>
-                    <div class="flex items-center justify-center bg-slate-950 border border-slate-800 rounded-lg h-[42px] px-2 shadow-inner">
-                        <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-semibold text-amber-400 uppercase tracking-wider select-none">
-                            <input id="setup-plus-one-lap" type="checkbox" checked class="w-4 h-4 rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0">
+                    <div class="flex items-center justify-center bg-slate-950 border border-slate-800 rounded-lg h-[42px] px-4 shadow-inner">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-amber-400 uppercase tracking-wider select-none">
+                            <input id="setup-plus-one-lap" type="checkbox" checked class="w-4 h-4 rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0 disabled:opacity-50">
                             <span>+ 1 kolo</span>
                         </label>
                     </div>
@@ -156,7 +155,7 @@
                 
                 <div id="btn-create-session-wrapper" class="flex justify-center border-t border-slate-800 pt-6 mt-4">
                     <button onclick="zalozitRelaci()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-12 rounded-lg text-sm uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5">
-                        Založit session 🚀
+                        Založit tréninkovou relaci 🚀
                     </button>
                 </div>
                 
@@ -187,7 +186,7 @@
                         </div>
 
                         <div>
-                            <h3 id="sess-display-event" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Aktivní Session</h3>
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Aktivní Tréninková Relace</h3>
                             <div class="text-lg font-bold text-white uppercase tracking-wider">
                                 <span id="sess-display-track" class="text-blue-400">Trať</span> 
                                 <span class="text-slate-600 mx-2">|</span> 
@@ -832,7 +831,6 @@ function aktualizujNahledy() {
 function zalozitRelaci() {
     stav.trat_jmeno = document.getElementById('setup-track').value;
     stav.auto_jmeno = document.getElementById('setup-car').value;
-    let eventName = document.getElementById('setup-event-name').value.trim() || "Aktivní Session";
     
     if(!stav.trat_jmeno || !stav.auto_jmeno) { ukazUpozorneni("Vyberte trať a auto ze seznamu.", "error"); return; }
     
@@ -845,6 +843,21 @@ function zalozitRelaci() {
     if (startInput) { stav.start_time_str = startInput; let parts = startInput.split(':'); stav.start_time_sec = (parseInt(parts[0]) * 3600) + (parseInt(parts[1]) * 60); } else { stav.start_time_str = ""; stav.start_time_sec = null; }
 
     currentRoomId = document.getElementById('setup-room-id').value.trim() || "alonso_team";
+    
+    // ZAMKNUTÍ FORMULÁŘE
+    ['setup-room-id', 'setup-track', 'setup-car', 'setup-hours', 'setup-start-time', 'setup-plus-one-lap'].forEach(id => {
+        document.getElementById(id).disabled = true;
+    });
+    
+    // UI ZMĚNY NA HORNÍM FORMULÁŘI
+    document.getElementById('btn-create-session-wrapper').classList.add('hidden');
+    document.getElementById('btn-cancel-session').classList.remove('hidden');
+    document.getElementById('btn-db-modal').classList.add('hidden');
+    document.getElementById('lineups-quick-load').classList.add('hidden');
+    document.getElementById('setup-border-top').classList.replace('from-slate-600', 'from-emerald-600');
+    document.getElementById('setup-border-top').classList.replace('to-slate-500', 'to-emerald-500');
+    document.getElementById('setup-title-text').classList.replace('text-slate-200', 'text-emerald-400');
+    document.getElementById('setup-title-text').innerHTML = `<span>🔒</span> RELACE UZAMČENA A AKTIVNÍ`;
 
     // Aplikace fotek do panelu relace (kruhové ikony)
     if (stav.trat_data.img && stav.trat_data.img.trim() !== "") {
@@ -867,7 +880,6 @@ function zalozitRelaci() {
 
     // ZOBRAZENÍ PANELU RELACE S LIŠTOU
     document.getElementById('setup-session-block').classList.remove('hidden');
-    document.getElementById('sess-display-event').innerText = eventName;
     document.getElementById('sess-display-track').innerText = stav.trat_jmeno;
     document.getElementById('sess-display-car').innerText = stav.auto_jmeno;
     
@@ -877,8 +889,6 @@ function zalozitRelaci() {
     
     if(!mqttClient || !mqttClient.isConnected()) { initMQTT(currentRoomId); }
     vykresliPilotyVSession();
-    
-    ukazUpozorneni(`Session '${eventName}' byla založena/aktualizována.`);
 }
 
 function togglePilotsList() {
@@ -888,6 +898,27 @@ function togglePilotsList() {
         content.classList.remove('open'); icon.style.transform = 'rotate(0deg)';
     } else {
         content.classList.add('open'); icon.style.transform = 'rotate(180deg)';
+    }
+}
+
+function zrusitRelaci() {
+    if(confirm("Opravdu zrušit aktuální relaci? Ztratíte neuložená data z tréninků.")) {
+        ['setup-room-id', 'setup-track', 'setup-car', 'setup-hours', 'setup-start-time', 'setup-plus-one-lap'].forEach(id => {
+            document.getElementById(id).disabled = false;
+        });
+        
+        document.getElementById('btn-create-session-wrapper').classList.remove('hidden');
+        document.getElementById('btn-cancel-session').classList.add('hidden');
+        document.getElementById('btn-db-modal').classList.remove('hidden');
+        document.getElementById('lineups-quick-load').classList.remove('hidden');
+        
+        document.getElementById('setup-border-top').classList.replace('from-emerald-600', 'from-slate-600');
+        document.getElementById('setup-border-top').classList.replace('to-emerald-500', 'to-slate-500');
+        document.getElementById('setup-title-text').classList.replace('text-emerald-400', 'text-slate-200');
+        document.getElementById('setup-title-text').innerHTML = `<span>⚙️</span> KONFIGURACE ZÁVODNÍ RELACE`;
+
+        document.getElementById('setup-session-block').classList.add('hidden');
+        stav.jezdci = [];
     }
 }
 
