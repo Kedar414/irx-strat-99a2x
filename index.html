@@ -123,27 +123,27 @@
                 </div>
 
                 <div id="track-car-preview" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-4 items-center shadow-inner">
-                        <div class="w-16 h-16 bg-slate-900 rounded-lg flex items-center justify-center text-3xl border border-slate-700 shadow-md overflow-hidden shrink-0">
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-6 items-center shadow-inner">
+                        <div class="w-24 h-24 md:w-32 md:h-32 bg-slate-900 rounded-lg flex items-center justify-center text-4xl md:text-5xl border border-slate-700 shadow-md overflow-hidden shrink-0">
                             <span id="prev-track-emoji">📍</span>
                             <img id="prev-track-img" src="" class="hidden w-full h-full object-cover">
                         </div>
-                        <div>
-                            <h4 id="prev-track-name" class="text-sm font-bold text-blue-400 uppercase tracking-wider">Výběr Tratě</h4>
-                            <div class="text-[11px] text-slate-400 mt-1 flex gap-4 font-mono">
+                        <div class="flex-1">
+                            <h4 id="prev-track-name" class="text-base md:text-lg font-bold text-blue-400 uppercase tracking-wider">Výběr Tratě</h4>
+                            <div class="text-xs md:text-sm text-slate-400 mt-2 flex flex-col gap-1 font-mono">
                                 <span id="prev-track-pit">Boxy: -- s</span>
                                 <span id="prev-track-corners">Zatáček: --</span>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-4 items-center shadow-inner">
-                        <div class="w-16 h-16 bg-slate-900 rounded-lg flex items-center justify-center text-3xl border border-slate-700 shadow-md overflow-hidden shrink-0">
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-6 items-center shadow-inner">
+                        <div class="w-24 h-24 md:w-32 md:h-32 bg-slate-900 rounded-lg flex items-center justify-center text-4xl md:text-5xl border border-slate-700 shadow-md overflow-hidden shrink-0">
                             <span id="prev-car-emoji">🏎️</span>
                             <img id="prev-car-img" src="" class="hidden w-full h-full object-cover">
                         </div>
-                        <div>
-                            <h4 id="prev-car-name" class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Výběr Auta</h4>
-                            <div class="text-[11px] text-slate-400 mt-1 flex gap-4 font-mono">
+                        <div class="flex-1">
+                            <h4 id="prev-car-name" class="text-base md:text-lg font-bold text-emerald-400 uppercase tracking-wider">Výběr Auta</h4>
+                            <div class="text-xs md:text-sm text-slate-400 mt-2 flex flex-col gap-1 font-mono">
                                 <span id="prev-car-tank">Nádrž: -- L</span>
                                 <span id="prev-car-tires">Pneu: -- s</span>
                             </div>
@@ -1185,7 +1185,19 @@ function prepocitejLiveZavodStrategii() {
     let html = '';
     let global_kolo = 0;
     let celkem_cas = 0;
+    let max_cas_sec = stav.delka_zavodu_hod * 3600;
     let pit_cas = Number(stav.trat_data.pit_lane_loss_sec) + Number(stav.auto_data.cas_pneu_sec);
+    
+    // Pomocná funkce pro převod času startu na reálné hodiny
+    let parseStartTime = () => {
+        if(!stav.start_time_str) return null;
+        let parts = stav.start_time_str.split(':');
+        if(parts.length !== 2) return null;
+        let date = new Date();
+        date.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+        return date;
+    };
+    let startTimeDate = parseStartTime();
     
     stav.stinty.forEach((st, idx) => {
         let pilot = stav.jezdci.find(j => j.jmeno === st.jezdec_jmeno);
@@ -1197,17 +1209,42 @@ function prepocitejLiveZavodStrategii() {
         
         let stint_cas = kola * (pilot.cas || 120);
         let palivo_celkem = kola * (pilot.spotreba || 3);
+        
         celkem_cas += stint_cas;
-        if(idx < stav.stinty.length - 1) celkem_cas += pit_cas + (palivo_celkem / Number(stav.auto_data.rychlost_tankovani_l_za_s));
+
+        // VÝPOČTY ČASŮ PITSTOPU
+        let zbyva_cas_do_konce = max_cas_sec - celkem_cas;
+        if(zbyva_cas_do_konce < 0) zbyva_cas_do_konce = 0;
+        
+        let realnyCasZastavkyStr = "";
+        if(startTimeDate) {
+            // Vypočítá reálnou hodinu přičtením odjetých sekund k času startu
+            let pitTime = new Date(startTimeDate.getTime() + (celkem_cas * 1000));
+            let h = String(pitTime.getHours()).padStart(2, '0');
+            let m = String(pitTime.getMinutes()).padStart(2, '0');
+            realnyCasZastavkyStr = `⏱️ Hodiny: ${h}:${m}`;
+        }
+        
+        if(idx < stav.stinty.length - 1) {
+            celkem_cas += pit_cas + (palivo_celkem / Number(stav.auto_data.rychlost_tankovani_l_za_s));
+        }
         
         html += `
         <div class="relative pl-6 pb-6 border-l-2 border-slate-700 last:border-transparent last:pb-0">
             <div class="absolute w-4 h-4 rounded-full bg-blue-500 -left-[9px] top-1 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
             <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-md hover:bg-slate-800/50 transition-colors">
-                <div class="flex justify-between items-center mb-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                     <h4 class="text-sm font-bold text-slate-200">Stint ${idx + 1}: <span class="text-blue-400 uppercase tracking-wider">${st.jezdec_jmeno}</span></h4>
-                    <span class="text-xs font-mono font-bold bg-slate-950 px-3 py-1 rounded-full text-slate-400 border border-slate-700 shadow-inner">Kolo ${start_kolo} - ${global_kolo}</span>
+                    <div class="flex flex-wrap gap-2 text-xs font-mono font-bold">
+                        <span class="bg-slate-950 px-3 py-1 rounded-full text-slate-400 border border-slate-700 shadow-inner">Kolo ${start_kolo} - ${global_kolo}</span>
+                        <span class="bg-blue-900/30 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30">Pitstop zbývá: ${formatujSekundy(zbyva_cas_do_konce)}</span>
+                    </div>
                 </div>
+                
+                <div class="text-xs text-slate-400 font-mono mb-4 bg-slate-950 inline-block px-3 py-1.5 rounded border border-slate-800">
+                    ${realnyCasZastavkyStr ? realnyCasZastavkyStr : '⚠️ Pro zobrazení času pitstopu vyplňte "Čas startu" při zakládání relace.'}
+                </div>
+
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] font-mono font-bold text-slate-400">
                     <div class="bg-slate-950 px-3 py-2 rounded border border-slate-800 shadow-inner text-center">🏁 Kol: <span class="text-white block mt-1 text-sm">${kola}</span></div>
                     <div class="bg-slate-950 px-3 py-2 rounded border border-slate-800 shadow-inner text-center">⏱️ Jízda: <span class="text-white block mt-1 text-sm">${formatujCasKola(stint_cas)}</span></div>
