@@ -621,15 +621,14 @@ const firebaseConfig = {
   measurementId: "G-33M6R8RKBV"
 };
 
-// Inicializace Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-
 let DB_TRATI = {}; let DB_AUT = {}; let DB_LINEUPS = [];
-let TEAM_SESSIONS = {}; // Uložené založené relace (garáž)
+let TEAM_SESSIONS = {}; // Uložené založené relace (garáž) v Cloudu
+let OPEN_SESSIONS = new Set(); // Lokální paměť, které akordeony jsou rozevřené
 
 let stav = {
     isLiveMode: false,
@@ -662,26 +661,106 @@ if (sessionStorage.getItem('iracing_auth') === 'true') { document.getElementById
 window.addEventListener('DOMContentLoaded', () => { inicializujDatabazi(); });
 
 function inicializujDatabazi() {
-    // 1. Živé naslouchání na Tratě
+    // 1. Tratě
     db.ref('garage/tracks').on('value', (snapshot) => {
         DB_TRATI = snapshot.val() || {...DEFAULTS_TRATE};
-        obnovDropdownMenu();
-        obnovSeznamyVDB();
-        aktualizujNahledy();
+        obnovDropdownMenu(); obnovSeznamyVDB(); aktualizujNahledy();
     });
 
-    // 2. Živé naslouchání na Auta
+    // 2. Auta
     db.ref('garage/cars').on('value', (snapshot) => {
         DB_AUT = snapshot.val() || {...DEFAULTS_AUT};
-        obnovDropdownMenu();
-        obnovSeznamyVDB();
-        aktualizujNahledy();
+        obnovDropdownMenu(); obnovSeznamyVDB(); aktualizujNahledy();
     });
 
-    // 3. Živé naslouchání na Uložené sestavy (Lineups)
+    // 3. Lineups
     db.ref('garage/lineups').on('value', (snapshot) => {
-        DB_LINEUPS = snapshot.val() || [];
-        vykresliLineupy();
+        DB_LINEUPS = snapshot.val() || []; vykresliLineupy();
+    });
+
+    // 4. Aktivní Týmové Relace (Pro trénink)
+    db.ref('active_sessions').on('value', (snapshot) => {
+        TEAM_SESSIONS = snapshot.val() || {};
+        vykresliVsechnySessions(); // Překreslí UI
+    });
+
+    // 5. LIVE ZÁVOD / STRATEGIE
+    db.ref('live_race').on('value', (snapshot) => {
+        let data = snapshot.val();
+        if (data) {
+            stav = data;
+            // Pokud probíhá live závod nebo se tvoří náhled strategie, přepneme obrazovku všem
+            if (stav.isLiveMode || stav.isStrategyPreview) {
+                document.getElementById('screen-setup').classList.add('hidden');
+                document.getElementById('screen-practice').classList.add('hidden'); // Skryje i případný lokální trénink
+                document.getElementById('screen-dashboard').classList.remove('hidden');
+                
+                prepocitejLiveZavodStrategii();
+                
+                if(stav.isLiveMode) {
+                    document.getElementById('pre-race-editor').classList.add('hidden');
+                    document.getElementById('btn-lock-race').classList.add('hidden');
+                    document.getElementById('btn-back-setup').classList.add('hidden');
+                    document.getElementById('preview-strategy-header').classList.add('hidden');
+                    
+                    document.getElementById('live-action-buttons').classList.remove('hidden');
+                    document.getElementById('live-telemetry-widget').classList.remove('hidden');
+                    document.getElementById('live-tires-widget').classList.remove('hidden');
+                    document.getElementById('live-race-form').classList.remove('hidden');
+                    document.getElementById('live-last-lap-widget').classList.remove('hidden');
+                    document.getElementById('live-lap-history-wrapper').classList.remove('hidden');
+                    document.getElementById('live-strategy-summary').classList.remove('hidden');
+                    document.getElementById('live-strategy-details').open = false;
+                    
+                    document.getElementById('active-screen-tag').innerText = `🔴 LIVE ZÁVOD: ${stav.trat_jmeno}`;
+                    document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse transition-colors duration-300";
+                    
+                    if(!stav.historie_kol) stav.historie_kol = [];
+                    vykresliHistoriiZavodu();
+                    aktualizujLiveBudiky();
+                } else {
+                    // Jen Preview
+                    document.getElementById('active-screen-tag').innerText = `Náhled Strategie`;
+                    document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 transition-colors duration-300";
+                    
+                    document.getElementById('preview-strategy-header').classList.remove('hidden'); 
+                    document.getElementById('live-strategy-summary').classList.add('hidden');
+                    document.getElementById('live-strategy-details').open = true;
+                    
+                    document.getElementById('live-last-lap-widget').classList.add('hidden'); 
+                    document.getElementById('live-lap-history-wrapper').classList.add('hidden');
+                    document.getElementById('live-telemetry-widget').classList.add('hidden'); 
+                    document.getElementById('live-tires-widget').classList.add('hidden');
+                    document.getElementById('live-race-form').classList.add('hidden');
+                    
+                    document.getElementById('pre-race-editor').classList.remove('hidden');
+                    document.getElementById('btn-lock-race').classList.remove('hidden');
+                    document.getElementById('btn-back-setup').classList.remove('hidden');
+                    document.getElementById('live-action-buttons').classList.add('hidden');
+                    
+                    // Vykresli editor
+                    let outHTML = '<h4 class="text-sm font-bold text-blue-400 mb-3 border-b border-blue-500/20 pb-2 uppercase tracking-wider">Editor Stintů před startem</h4>';
+                    stav.stinty.forEach((st, idx) => {
+                        let driverOptions = stav.jezdci.map(j => `<option value="${j.jmeno}" ${j.jmeno === st.jezdec_jmeno ? 'selected' : ''}>${j.jmeno}</option>`).join('');
+                        outHTML += `<div class="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-wrap items-center gap-3 text-xs mb-2"><span class="font-bold text-slate-500 w-14">Stint ${idx + 1}:</span><select id="edit-stint-driver-${idx}" onchange="updateStintData(${idx})" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 flex-1 outline-none">${driverOptions}</select><label class="flex items-center gap-1.5 cursor-pointer ml-auto text-amber-500 font-bold"><input type="checkbox" id="edit-stint-pneu-${idx}" ${st.meni_pneu ? 'checked' : ''} onchange="updateStintData(${idx})" class="focus:ring-0 w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500"> Pneu</label></div>`;
+                    }); 
+                    document.getElementById('pre-race-editor').innerHTML = outHTML;
+                }
+            } else {
+                document.getElementById('screen-dashboard').classList.add('hidden');
+                if(!stav.isPracticeMode) document.getElementById('screen-setup').classList.remove('hidden');
+                document.getElementById('active-screen-tag').innerText = "Tvorba Relace";
+                document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 transition-colors duration-300";
+            }
+        } else {
+            // Závod byl v DB zrušen
+            if(document.getElementById('screen-dashboard').classList.contains('hidden') === false) {
+                document.getElementById('screen-dashboard').classList.add('hidden');
+                document.getElementById('screen-setup').classList.remove('hidden');
+                document.getElementById('active-screen-tag').innerText = "Tvorba Relace";
+                document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 transition-colors duration-300";
+            }
+        }
     });
 
     checkUrlRoom();
@@ -738,7 +817,7 @@ function zalozitRelaci() {
     
     if(!trat_jmeno || !auto_jmeno) { ukazUpozorneni("Vyberte trať a auto ze seznamu.", "error"); return; }
     
-    let sid = Date.now();
+    let sid = Date.now().toString(); // Firebase prefers string keys
     TEAM_SESSIONS[sid] = {
         id: sid,
         eventName: eventName,
@@ -754,8 +833,9 @@ function zalozitRelaci() {
         setup: { p_fl: "", p_fr: "", p_rl: "", p_rr: "", c_fl: "", c_fr: "", c_rl: "", c_rr: "", t_fl: "", t_fr: "", t_rl: "", t_rr: "", arb_f: "", arb_r: "", wing: "", notes: "" }
     };
     
-    vytvorDOMProSession(sid);
-    ukazUpozorneni(`Session '${eventName}' byla založena.`);
+    OPEN_SESSIONS.add(sid); // Nová session se rovnou rozbalí
+    db.ref('active_sessions').set(TEAM_SESSIONS); // Pošli do cloudu
+    ukazUpozorneni(`Session '${eventName}' byla založena pro celý tým.`);
     return sid;
 }
 
@@ -763,83 +843,92 @@ function smazatSession(event, sid) {
     if(event) event.stopPropagation();
     if(confirm("Opravdu smazat tuto vytvořenou session a všechny její neuložené jezdce?")) {
         delete TEAM_SESSIONS[sid];
-        let el = document.getElementById(`session-card-${sid}`);
-        if(el) el.remove();
-        ukazUpozorneni("Session byla smazána.");
+        OPEN_SESSIONS.delete(sid);
+        db.ref('active_sessions').set(TEAM_SESSIONS); // Pošli smazání do cloudu
+        ukazUpozorneni("Session byla smazána pro celý tým.");
     }
 }
 
-function vytvorDOMProSession(sid) {
-    let s = TEAM_SESSIONS[sid];
+function vykresliVsechnySessions() {
     let container = document.getElementById('sessions-container');
+    container.innerHTML = '';
+    
+    // Sort keys descending to show newest first
+    Object.keys(TEAM_SESSIONS).sort((a,b) => b - a).forEach(sid => {
+        let s = TEAM_SESSIONS[sid];
+        let div = document.createElement('div');
+        div.id = `session-card-${sid}`;
+        div.className = "shadow-[0_0_30px_rgba(16,185,129,0.1)] rounded-xl relative transition-all";
 
-    let div = document.createElement('div');
-    div.id = `session-card-${sid}`;
-    div.className = "shadow-[0_0_30px_rgba(16,185,129,0.1)] rounded-xl relative transition-all";
+        let trackImgHtml = (s.trat_data.img && s.trat_data.img.trim() !== "") ? `<img src="${s.trat_data.img}" class="w-full h-full object-cover relative z-10">` : `<span class="text-xl absolute">📍</span>`;
+        let carImgHtml = (s.auto_data.img && s.auto_data.img.trim() !== "") ? `<img src="${s.auto_data.img}" class="w-full h-full object-cover relative z-10">` : `<span class="text-xl absolute">🏎️</span>`;
 
-    let trackImgHtml = (s.trat_data.img && s.trat_data.img.trim() !== "") ? `<img src="${s.trat_data.img}" class="w-full h-full object-cover relative z-10">` : `<span class="text-xl absolute">📍</span>`;
-    let carImgHtml = (s.auto_data.img && s.auto_data.img.trim() !== "") ? `<img src="${s.auto_data.img}" class="w-full h-full object-cover relative z-10">` : `<span class="text-xl absolute">🏎️</span>`;
+        let isOpen = OPEN_SESSIONS.has(sid) ? 'open' : '';
+        let rot = isOpen ? 'rotate-180' : 'rotate-0';
 
-    div.innerHTML = `
-        <div class="bg-gradient-to-r from-slate-900 to-slate-800 border border-emerald-500/30 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group shadow-lg z-10 transition-colors">
-            <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 z-20"></div>
-            
-            <div class="flex items-center gap-4 cursor-pointer w-full md:w-auto z-10" onclick="togglePilotsList(${sid})">
-                <div class="flex -space-x-3 shrink-0">
-                    <div class="w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden relative shadow-lg">${trackImgHtml}</div>
-                    <div class="w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden relative shadow-lg">${carImgHtml}</div>
-                </div>
-
-                <div>
-                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">${s.eventName}</h3>
-                    <div class="text-lg font-bold text-white uppercase tracking-wider">
-                        <span class="text-blue-400">${s.trat_jmeno}</span> 
-                        <span class="text-slate-600 mx-2">|</span> 
-                        <span class="text-emerald-400">${s.auto_jmeno}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3 mt-4 md:mt-0 w-full md:w-auto z-10">
-                <button onclick="otevriCarSetupModal(event, ${sid})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md" title="Setup Voze">🔧 Setup</button>
-                <button onclick="otevriTrackInfoModal(event, ${sid})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md" title="Poznámky k trati">ℹ️ Info</button>
-                <button onclick="pridatPilotaBtn(event, ${sid})" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-5 rounded-lg text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all">+ Přidat Pilota</button>
-                <button onclick="smazatSession(event, ${sid})" class="bg-red-900/40 hover:bg-red-800 text-red-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-red-900/50 shadow-md flex items-center justify-center w-10" title="Smazat tuto Session">🗑️</button>
-                <button onclick="togglePilotsList(${sid})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md flex items-center justify-center w-10">
-                    <span id="pilots-toggle-icon-${sid}" class="transition-transform duration-300 rotate-180">▼</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="content-${sid}" class="pilots-content open bg-slate-900 border border-slate-800 border-t-0 rounded-b-xl -mt-2 shadow-inner">
-            <div class="pt-6 px-4 pb-4">
-                <div id="session-drivers-container-${sid}" class="space-y-3"></div>
+        div.innerHTML = `
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 border border-emerald-500/30 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group shadow-lg z-10 transition-colors">
+                <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 z-20"></div>
                 
-                <div class="mt-6 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div class="w-full sm:w-1/2 flex gap-2">
-                        <input type="text" id="lineup-save-name-${sid}" placeholder="Název pro uložení této sestavy..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 shadow-inner">
-                        <button onclick="ulozitLineupPiloti(${sid})" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg text-xs uppercase tracking-wider shadow-md whitespace-nowrap transition-colors">💾 Uložit Sestavu</button>
+                <div class="flex items-center gap-4 cursor-pointer w-full md:w-auto z-10" onclick="togglePilotsList('${sid}')">
+                    <div class="flex -space-x-3 shrink-0">
+                        <div class="w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden relative shadow-lg">${trackImgHtml}</div>
+                        <div class="w-14 h-14 rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden relative shadow-lg">${carImgHtml}</div>
                     </div>
-                    
-                    <button onclick="generujStrategiiZRelace(${sid})" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold px-8 py-3.5 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 uppercase tracking-wider text-sm whitespace-nowrap">
-                        Vygenerovat Strategii 📊
+
+                    <div>
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">${s.eventName}</h3>
+                        <div class="text-lg font-bold text-white uppercase tracking-wider">
+                            <span class="text-blue-400">${s.trat_jmeno}</span> 
+                            <span class="text-slate-600 mx-2">|</span> 
+                            <span class="text-emerald-400">${s.auto_jmeno}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 mt-4 md:mt-0 w-full md:w-auto z-10">
+                    <button onclick="otevriCarSetupModal(event, '${sid}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md" title="Setup Voze">🔧 Setup</button>
+                    <button onclick="otevriTrackInfoModal(event, '${sid}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md" title="Poznámky k trati">ℹ️ Info</button>
+                    <button onclick="pridatPilotaBtn(event, '${sid}')" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-5 rounded-lg text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all">+ Přidat Pilota</button>
+                    <button onclick="smazatSession(event, '${sid}')" class="bg-red-900/40 hover:bg-red-800 text-red-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-red-900/50 shadow-md flex items-center justify-center w-10" title="Smazat tuto Session">🗑️</button>
+                    <button onclick="togglePilotsList('${sid}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg text-xs font-bold transition-all border border-slate-600 shadow-md flex items-center justify-center w-10">
+                        <span id="pilots-toggle-icon-${sid}" class="transition-transform duration-300 ${rot}">▼</span>
                     </button>
                 </div>
             </div>
-        </div>
-    `;
-    
-    container.prepend(div);
-    vykresliPilotyVSession(sid);
+
+            <div id="content-${sid}" class="pilots-content ${isOpen} bg-slate-900 border border-slate-800 border-t-0 rounded-b-xl -mt-2 shadow-inner">
+                <div class="pt-6 px-4 pb-4">
+                    <div id="session-drivers-container-${sid}" class="space-y-3"></div>
+                    
+                    <div class="mt-6 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <div class="w-full sm:w-1/2 flex gap-2">
+                            <input type="text" id="lineup-save-name-${sid}" placeholder="Název pro uložení této sestavy..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 shadow-inner">
+                            <button onclick="ulozitLineupPiloti('${sid}')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg text-xs uppercase tracking-wider shadow-md whitespace-nowrap transition-colors">💾 Uložit Sestavu</button>
+                        </div>
+                        
+                        <button onclick="generujStrategiiZRelace('${sid}')" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold px-8 py-3.5 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 uppercase tracking-wider text-sm whitespace-nowrap">
+                            Vygenerovat Strategii 📊
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(div);
+        vykresliPilotyVSession(sid);
+    });
 }
 
 function togglePilotsList(sid) {
     let content = document.getElementById(`content-${sid}`);
     let icon = document.getElementById(`pilots-toggle-icon-${sid}`);
     if (content.classList.contains('open')) {
-        content.classList.remove('open'); icon.style.transform = 'rotate(0deg)';
+        content.classList.remove('open'); icon.classList.replace('rotate-180', 'rotate-0');
+        OPEN_SESSIONS.delete(sid);
     } else {
-        content.classList.add('open'); icon.style.transform = 'rotate(180deg)';
+        content.classList.add('open'); icon.classList.replace('rotate-0', 'rotate-180');
+        OPEN_SESSIONS.add(sid);
     }
 }
 
@@ -848,17 +937,19 @@ function pridatPilotaBtn(event, sid) {
     let s = TEAM_SESSIONS[sid];
     let jmeno = prompt("Zadejte jméno nového pilota (např. Petr):");
     if (jmeno && jmeno.trim() !== "") {
+        if(!s.jezdci) s.jezdci = [];
         s.jezdci.push({ jmeno: jmeno.trim(), cas: 0, spotreba: 0, cas_eco: 0, spotreba_eco: 0 });
-        vykresliPilotyVSession(sid); ukazUpozorneni(`Pilot ${jmeno} přidán.`);
-        let content = document.getElementById(`content-${sid}`);
-        if (!content.classList.contains('open')) { togglePilotsList(sid); }
+        OPEN_SESSIONS.add(sid); // Zajistí, že se to rozevře
+        db.ref('active_sessions').set(TEAM_SESSIONS); // Pošli do cloudu
+        ukazUpozorneni(`Pilot ${jmeno} přidán do cloudu.`);
     }
 }
 
 function odebratPilota(sid, index) {
     let s = TEAM_SESSIONS[sid];
     if(confirm(`Opravdu odebrat pilota: ${s.jezdci[index].jmeno}?`)) {
-        s.jezdci.splice(index, 1); vykresliPilotyVSession(sid);
+        s.jezdci.splice(index, 1); 
+        db.ref('active_sessions').set(TEAM_SESSIONS); // Pošli do cloudu
     }
 }
 
@@ -866,7 +957,7 @@ function vykresliPilotyVSession(sid) {
     const container = document.getElementById(`session-drivers-container-${sid}`);
     let s = TEAM_SESSIONS[sid];
     
-    if (s.jezdci.length === 0) {
+    if (!s.jezdci || s.jezdci.length === 0) {
         container.innerHTML = '<div class="text-center text-sm text-slate-500 italic py-8 border border-dashed border-slate-700 rounded-lg">Zatím nebyl přidán žádný pilot. Klikněte na tlačítko výše "+ Přidat Pilota".</div>';
         return;
     }
@@ -879,7 +970,7 @@ function vykresliPilotyVSession(sid) {
         
         html += `
         <div class="bg-slate-950 border border-slate-700 rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4 relative shadow-inner">
-            <button onclick="odebratPilota(${sid}, ${index})" class="absolute top-2 right-2 text-slate-500 hover:text-red-500 text-sm transition-colors">❌</button>
+            <button onclick="odebratPilota('${sid}', ${index})" class="absolute top-2 right-2 text-slate-500 hover:text-red-500 text-sm transition-colors">❌</button>
             <div class="flex items-center gap-4 w-full md:w-auto">
                 <div class="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center border border-slate-600 text-lg font-bold text-slate-400 uppercase shadow-inner">${j.jmeno.substring(0,2)}</div>
                 <h4 class="text-lg font-bold text-white uppercase tracking-wider">${j.jmeno}</h4>
@@ -889,8 +980,8 @@ function vykresliPilotyVSession(sid) {
                 <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="block text-[10px] uppercase text-red-400 font-bold mb-1">ECO (Fuel Save)</span>${ecoStr}</div>
             </div>
             <div class="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-                <button onclick="otevriManualniEditPilota(${sid}, ${index})" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold p-3 rounded-lg transition-colors shadow-md" title="Manuálně zapsat data">✏️</button>
-                <button onclick="zacitTrenink(${sid}, ${index})" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg uppercase tracking-wider text-xs transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <button onclick="otevriManualniEditPilota('${sid}', ${index})" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold p-3 rounded-lg transition-colors shadow-md" title="Manuálně zapsat data">✏️</button>
+                <button onclick="zacitTrenink('${sid}', ${index})" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg uppercase tracking-wider text-xs transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                     🏎️ Začít Trénink
                 </button>
             </div>
@@ -918,10 +1009,12 @@ function ulozitManualnihoPilota() {
     p.cas = parseLapTime(document.getElementById('md-time').value); p.spotreba = parseFloat(document.getElementById('md-fuel').value) || 0;
     p.cas_eco = parseLapTime(document.getElementById('md-eco-time').value); p.spotreba_eco = parseFloat(document.getElementById('md-eco-fuel').value) || 0;
     document.getElementById('manual-driver-modal').classList.add('hidden');
-    vykresliPilotyVSession(sid); ukazUpozorneni(`Data pro ${p.jmeno} uložena.`);
+    db.ref('active_sessions').set(TEAM_SESSIONS); // Pošli do cloudu
+    ukazUpozorneni(`Data pro ${p.jmeno} synchronizována do cloudu.`);
 }
 
 // ==================== TRÉNINKOVÝ REŽIM (PRACTICE) ====================
+// Pozn: Samotný trénink se do cloudu posílá až v momentě uložení profilu.
 function zacitTrenink(sid, index) {
     let s = TEAM_SESSIONS[sid];
     stav.isPracticeMode = true; stav.isLiveMode = false;
@@ -937,7 +1030,7 @@ function zacitTrenink(sid, index) {
     document.getElementById('screen-practice').classList.remove('hidden');
     
     zpracujPracticeData(); 
-    ukazUpozorneni(`Začíná trénink pro: ${jmeno} (${s.eventName}). Vyjeďte na trať.`);
+    ukazUpozorneni(`Začíná trénink pro: ${jmeno}. Ostatní kolegové ho uvidí až po uložení.`);
 }
 
 function ukoncitTreninkBtn() {
@@ -993,16 +1086,18 @@ function ulozitVyhodnoceniTreningu() {
     if (typRežimu === 'push') { p.cas = avgCas; p.spotreba = avgFuel; } else { p.cas_eco = avgCas; p.spotreba_eco = avgFuel; }
     
     document.getElementById('practice-eval-modal').classList.add('hidden'); 
-    ukazUpozorneni(`Data (${typRežimu.toUpperCase()}) úspěšně uložena do profilu pilota.`);
+    
+    // Uložení profilu tréninku do cloudu pro všechny
+    db.ref('active_sessions').set(TEAM_SESSIONS); 
+    ukazUpozorneni(`Trénink uložen. Data propagaována celému týmu.`);
+    
     ukoncitTreninkNavrat();
 }
 
 function ukoncitTreninkNavrat() { 
-    let sid = stav.active_practice_session_id;
     stav.isPracticeMode = false; stav.practice_laps = []; stav.practice_driver_index = -1; stav.active_practice_session_id = null;
     document.getElementById('screen-practice').classList.add('hidden'); 
     document.getElementById('screen-setup').classList.remove('hidden'); 
-    vykresliPilotyVSession(sid); 
 }
 
 function pridatManualniKoloTreningu() {
@@ -1043,7 +1138,7 @@ function kopirovatShareLink() { const input = document.getElementById('share-lin
 
 function ulozitLineupPiloti(sid) {
     let s = TEAM_SESSIONS[sid];
-    if (s.jezdci.length === 0) { ukazUpozorneni("Nelze uložit prázdnou sestavu.", "error"); return; }
+    if (!s.jezdci || s.jezdci.length === 0) { ukazUpozorneni("Nelze uložit prázdnou sestavu.", "error"); return; }
     
     let defaultName = `${s.eventName} (${s.jezdci.map(p=>p.jmeno).join(', ')})`;
     let nazev = document.getElementById(`lineup-save-name-${sid}`).value.trim() || defaultName;
@@ -1072,7 +1167,7 @@ function aktivovatLineup(id) {
     
     let sid = zalozitRelaci(); 
     TEAM_SESSIONS[sid].jezdci = JSON.parse(JSON.stringify(lineup.piloti));
-    vykresliPilotyVSession(sid);
+    db.ref('active_sessions').set(TEAM_SESSIONS);
     ukazUpozorneni(`Načtena kompletní sestava: ${lineup.nazev}`);
 }
 
@@ -1088,7 +1183,7 @@ function vykresliLineupy() {
 // ==================== GENERÁTOR STRATEGIE A VÝPOČET ====================
 function generujStrategiiZRelace(sid) {
     let s = TEAM_SESSIONS[sid];
-    if(!s || s.jezdci.length === 0) { ukazUpozorneni("Přidejte do relace alespoň jednoho pilota.", "error"); return; }
+    if(!s || !s.jezdci || s.jezdci.length === 0) { ukazUpozorneni("Přidejte do relace alespoň jednoho pilota.", "error"); return; }
     let hasData = s.jezdci.some(j => j.cas > 0 || j.cas_eco > 0);
     if (!hasData) { ukazUpozorneni("Alespoň jeden pilot musí mít odjetý trénink nebo zapsaná data (✏️).", "error"); return; }
     
@@ -1098,10 +1193,10 @@ function generujStrategiiZRelace(sid) {
     stav.auto_jmeno = s.auto_jmeno;
     stav.delka_zavodu_hod = s.delka_zavodu_hod;
     stav.format_plus_kolo = s.format_plus_kolo;
+    stav.start_time_str = s.start_time_str;
     stav.auto_data = s.auto_data;
     stav.trat_data = s.trat_data;
     stav.aktualni_setup = s.setup ? JSON.parse(JSON.stringify(s.setup)) : {};
-    if(s.room_id) currentRoomId = s.room_id;
     
     stav.stinty = []; 
     let max_cas_sec = stav.delka_zavodu_hod * 3600; 
@@ -1132,55 +1227,33 @@ function generujStrategiiZRelace(sid) {
         idx_j = (idx_j + 1) % stav.jezdci.length;
     }
     
-    document.getElementById('screen-setup').classList.add('hidden'); 
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-    document.getElementById('active-screen-tag').innerText = `Náhled Strategie: ${s.eventName}`;
+    // Zde nastavíme, že se tvoří preview, aby to přeplo obrazovku i ostatním
+    stav.isStrategyPreview = true;
+    stav.isLiveMode = false;
     
-    document.getElementById('preview-strategy-header').classList.remove('hidden'); 
-    document.getElementById('live-strategy-summary').classList.add('hidden');
-    document.getElementById('live-strategy-details').open = true;
-    
-    document.getElementById('live-last-lap-widget').classList.add('hidden'); 
-    document.getElementById('live-lap-history-wrapper').classList.add('hidden');
-    document.getElementById('live-telemetry-widget').classList.add('hidden'); 
-    document.getElementById('live-tires-widget').classList.add('hidden');
-    document.getElementById('live-race-form').classList.add('hidden');
-    
-    let preEditor = document.getElementById('pre-race-editor'); 
-    preEditor.classList.remove('hidden');
-    document.getElementById('btn-lock-race').classList.remove('hidden');
-    document.getElementById('btn-back-setup').classList.remove('hidden');
-    document.getElementById('live-action-buttons').classList.add('hidden');
-    
-    let outHTML = '<h4 class="text-sm font-bold text-blue-400 mb-3 border-b border-blue-500/20 pb-2 uppercase tracking-wider">Editor Stintů před startem</h4>';
-    stav.stinty.forEach((st, idx) => {
-        let driverOptions = stav.jezdci.map(j => `<option value="${j.jmeno}" ${j.jmeno === st.jezdec_jmeno ? 'selected' : ''}>${j.jmeno}</option>`).join('');
-        outHTML += `<div class="bg-slate-950 border border-slate-800 rounded-lg p-3 flex flex-wrap items-center gap-3 text-xs mb-2">
-            <span class="font-bold text-slate-500 w-14">Stint ${idx + 1}:</span>
-            <select id="edit-stint-driver-${idx}" onchange="updateStintData(${idx})" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 flex-1 outline-none">${driverOptions}</select>
-            <label class="flex items-center gap-1.5 cursor-pointer ml-auto text-amber-500 font-bold"><input type="checkbox" id="edit-stint-pneu-${idx}" ${st.meni_pneu ? 'checked' : ''} onchange="updateStintData(${idx})" class="focus:ring-0 w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500"> Pneu</label>
-        </div>`;
-    }); 
-    preEditor.innerHTML = outHTML;
-    
-    prepocitejLiveZavodStrategii();
+    // Uložíme do databáze, to odpálí překreslení u všech klientů
+    db.ref('live_race').set(stav);
+    ukazUpozorneni("Náhled strategie vygenerován. Celý tým byl přesunut na dashboard.");
 }
 
 function updateStintData(idx) { 
     stav.stinty[idx].jezdec_jmeno = document.getElementById(`edit-stint-driver-${idx}`).value; 
     stav.stinty[idx].meni_pneu = document.getElementById(`edit-stint-pneu-${idx}`).checked; 
-    prepocitejLiveZavodStrategii(); 
+    
+    // Uloží do databáze = překreslí všem
+    db.ref('live_race/stinty').set(stav.stinty);
 }
 
 function zrusitVygenerovanouStrategii() { 
-    document.getElementById('screen-dashboard').classList.add('hidden'); 
-    document.getElementById('screen-setup').classList.remove('hidden'); 
-    document.getElementById('active-screen-tag').innerText = "Tvorba Relace"; 
+    if(confirm("Opravdu zrušit tento náhled pro celý tým?")) {
+        db.ref('live_race').remove(); // Smaže z cloudu a všechny to vykopne zpět na screen 1
+    }
 }
 
 function prepocitejLiveZavodStrategii() {
     let container = document.getElementById('timeline-container');
     if (!container) return;
+    if (!stav.stinty) stav.stinty = [];
     
     let html = '';
     let global_kolo = 0;
@@ -1262,43 +1335,28 @@ function prepocitejLiveZavodStrategii() {
     document.getElementById('sum-eco-plan').innerHTML = `<span class="text-emerald-400 font-mono">PUSH PLAN</span>`;
     
     document.getElementById('gauge-remaining').innerText = formatujSekundy(stav.delka_zavodu_hod * 3600);
-    document.getElementById('gauge-laps').innerText = `0 / ${global_kolo} kol`;
+    document.getElementById('gauge-laps').innerText = `${stav.historie_kol ? stav.historie_kol.length : 0} / ${global_kolo} kol`;
 }
 
 function zamkniASpustZavod() {
     stav.isLiveMode = true;
+    stav.isStrategyPreview = false;
     stav.historie_kol = [];
     stav.palivo_v_aute = Number(stav.auto_data.nadrz_l);
     
-    document.getElementById('pre-race-editor').classList.add('hidden');
-    document.getElementById('btn-lock-race').classList.add('hidden');
-    document.getElementById('btn-back-setup').classList.add('hidden');
-    document.getElementById('preview-strategy-header').classList.add('hidden');
-    
-    document.getElementById('live-action-buttons').classList.remove('hidden');
-    document.getElementById('live-telemetry-widget').classList.remove('hidden');
-    document.getElementById('live-tires-widget').classList.remove('hidden');
-    document.getElementById('live-race-form').classList.remove('hidden');
-    document.getElementById('live-last-lap-widget').classList.remove('hidden');
-    document.getElementById('live-lap-history-wrapper').classList.remove('hidden');
-    document.getElementById('live-strategy-summary').classList.remove('hidden');
-    document.getElementById('live-strategy-details').open = false;
-    
-    document.getElementById('active-screen-tag').innerText = `🔴 LIVE ZÁVOD: ${stav.trat_jmeno}`;
-    document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse transition-colors duration-300";
-    
-    vykresliHistoriiZavodu();
-    aktualizujLiveBudiky();
-    ukazUpozorneni("Live Závod úspěšně spuštěn! Nyní můžete zapisovat kola.");
+    // Zápis do DB uzamkne závod a upozorní všechny týmové parťáky
+    db.ref('live_race').set(stav);
+    ukazUpozorneni("Live Závod úspěšně spuštěn pro všechny klienty!");
 }
 
 function aktualizujLiveBudiky() {
+    if(!stav.historie_kol) stav.historie_kol = [];
     let ujeta_kola = stav.historie_kol.length;
     let spotreba_sum = stav.historie_kol.reduce((sum, lap) => sum + lap.spotreba, 0);
     let avg = ujeta_kola > 0 ? (spotreba_sum / ujeta_kola).toFixed(2) : "0.00";
     
     document.getElementById('gauge-fuel-avg').innerText = `${avg} L/k`;
-    document.getElementById('tel-fuel').innerText = stav.palivo_v_aute.toFixed(1) + " L";
+    document.getElementById('tel-fuel').innerText = (stav.palivo_v_aute || 0).toFixed(1) + " L";
     
     let textKola = document.getElementById('gauge-laps').innerText;
     let parts = textKola.split('/');
@@ -1313,6 +1371,8 @@ function zapisLiveKolo() {
     let ms = parseInt(document.getElementById('live-lap-ms').value) || 0;
     let cas = (m*60) + s + (ms/1000);
     let fuel = parseFloat(document.getElementById('live-lap-fuel').value) || 0;
+    
+    if(!stav.historie_kol) stav.historie_kol = [];
     let koloNum = parseInt(document.getElementById('live-lap-num').value) || (stav.historie_kol.length + 1);
     
     let note = document.getElementById('live-manual-note').value;
@@ -1332,8 +1392,9 @@ function zapisLiveKolo() {
     if(stav.palivo_v_aute < 0) stav.palivo_v_aute = 0;
     if(isPit) stav.palivo_v_aute = Number(stav.auto_data.nadrz_l); 
     
-    vykresliHistoriiZavodu();
-    aktualizujLiveBudiky();
+    // Zapíše jen updatnutá pole do Firebase - zbytek se překreslí z .on('value')
+    db.ref('live_race/historie_kol').set(stav.historie_kol);
+    db.ref('live_race/palivo_v_aute').set(stav.palivo_v_aute);
     
     document.getElementById('live-lap-min').value = ''; 
     document.getElementById('live-lap-sec').value = ''; 
@@ -1342,13 +1403,12 @@ function zapisLiveKolo() {
     document.getElementById('live-lap-num').value = stav.historie_kol[stav.historie_kol.length-1].kolo + 1;
     document.getElementById('live-manual-note').value = ''; 
     document.getElementById('live-is-pit').checked = false;
-    
-    ukazUpozorneni(`Kolo ${koloNum} uloženo.`);
 }
 
 function vykresliHistoriiZavodu() {
     let tbody = document.getElementById('live-laps-history-tbody');
     let html = '';
+    if(!stav.historie_kol) stav.historie_kol = [];
     [...stav.historie_kol].reverse().forEach(k => {
         let noteHtml = k.note ? `<span class="text-xs text-slate-400 block">${k.note}</span>` : '';
         let pitHtml = k.isPit ? `<span class="bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold mr-2 inline-block">ZASTÁVKA BOX</span>` : '';
@@ -1366,17 +1426,15 @@ function vykresliHistoriiZavodu() {
         let last = stav.historie_kol[stav.historie_kol.length - 1];
         document.getElementById('last-lap-time').innerText = formatujCasKola(last.cas);
         document.getElementById('tel-delta').innerText = formatujCasKola(last.cas);
+    } else {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Zatím nebylo zapsáno žádné kolo v závodě.</td></tr>';
+        document.getElementById('last-lap-time').innerText = "-:--.---";
     }
 }
 
 function ukonciZavod() {
-    if(confirm("Opravdu ukončit tento závod? Ztratíte neuloženou historii kol a vrátíte se do garáže.")) {
-        document.getElementById('screen-dashboard').classList.add('hidden');
-        document.getElementById('screen-setup').classList.remove('hidden');
-        
-        document.getElementById('active-screen-tag').innerText = "Tvorba Relace";
-        document.getElementById('active-screen-tag').className = "text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 transition-colors duration-300";
-        stav.isLiveMode = false;
+    if(confirm("Opravdu ukončit tento závod? Pro všechny klienty se ukončí spojení a vrátíte se do garáže.")) {
+        db.ref('live_race').remove(); // Odstranění uzlu vyvolá návrat do setupu pro všechny
     }
 }
 
@@ -1407,7 +1465,8 @@ function ulozCarSetupTmp() {
             t_fl: document.getElementById('set-t-fl').value, t_fr: document.getElementById('set-t-fr').value, t_rl: document.getElementById('set-t-rl').value, t_rr: document.getElementById('set-t-rr').value,
             arb_f: document.getElementById('set-arb-f').value, arb_r: document.getElementById('set-arb-r').value, wing: document.getElementById('set-wing').value, notes: document.getElementById('setup-val-notes').value
         };
-        ukazUpozorneni("Setup vozu byl uložen k této session.");
+        db.ref('active_sessions').set(TEAM_SESSIONS);
+        ukazUpozorneni("Setup vozu byl synchronizován.");
     }
     zavriCarSetupModal(); 
 }
