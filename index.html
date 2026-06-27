@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     
+    <!-- FIREBASE KNIHOVNY -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -31,6 +32,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-blue-500 selection:text-white">
 
+    <!-- AUTH OVERLAY -->
     <div id="auth-overlay" class="fixed inset-0 z-[99999] bg-slate-950 flex items-center justify-center transition-opacity duration-500">
         <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-sm text-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-500"></div>
@@ -73,6 +75,7 @@
             </div>
         </div>
 
+        <!-- ================= OBRAZOVKA 1: NASTAVENÍ A TRÉNINKY ================= -->
         <section id="screen-setup" class="space-y-6">
 
             <div id="setup-init-block" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative overflow-hidden transition-all duration-300">
@@ -123,6 +126,7 @@
             <div id="sessions-container" class="space-y-6 mt-8"></div>
         </section>
 
+        <!-- ================= OBRAZOVKA TRÉNINK (PRACTICE) ================= -->
         <section id="screen-practice" class="hidden space-y-6">
             
             <div class="bg-slate-900 border border-emerald-500/50 rounded-xl p-5 shadow-[0_0_30px_rgba(16,185,129,0.15)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -135,6 +139,7 @@
                 </button>
             </div>
 
+            <!-- MINI TELEMETRIE PRO TRÉNINK -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div class="md:col-span-4 flex flex-col justify-center items-center rounded-xl p-4 bg-slate-900 border border-slate-800 shadow-lg transition-colors duration-200" id="prac-delta-box">
                     <span class="text-[10px] uppercase text-slate-400 font-bold tracking-widest mb-1">Live Delta</span>
@@ -144,9 +149,9 @@
                     <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">⏱️ Poslední Kolo</h4>
                     <div id="prac-last-lap" class="text-3xl font-mono text-blue-400 font-bold text-center mb-2 drop-shadow-md">-:--.---</div>
                     <div class="grid grid-cols-3 gap-2 text-center">
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S1</span><span id="prac-sec-1" class="text-xs font-mono font-bold text-slate-300">-</span></div>
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S2</span><span id="prac-sec-2" class="text-xs font-mono font-bold text-slate-300">-</span></div>
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S3</span><span id="prac-sec-3" class="text-xs font-mono font-bold text-slate-300">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S1</span><span id="prac-sec-1" class="text-xs font-mono font-bold text-slate-500">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S2</span><span id="prac-sec-2" class="text-xs font-mono font-bold text-slate-500">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S3</span><span id="prac-sec-3" class="text-xs font-mono font-bold text-slate-500">-</span></div>
                     </div>
                 </div>
                 <div class="md:col-span-3 flex flex-col justify-center rounded-xl bg-slate-900 p-4 border border-slate-800 text-center shadow-lg">
@@ -155,6 +160,7 @@
                 </div>
             </div>
 
+            <!-- HISTORIE KOL V TRÉNINKU -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
                 <div class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
                     <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>⏱️</span> Zaznamenaná kola v tomto tréninku</h4>
@@ -202,6 +208,7 @@
 
         </section>
 
+        <!-- ================= OBRAZOVKA 2: STRATEGIE (NÁHLED) ================= -->
         <section id="screen-strategy" class="hidden space-y-6">
             
             <div class="bg-slate-900 border border-blue-500/50 rounded-xl p-5 shadow-[0_0_30px_rgba(59,130,246,0.15)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -216,6 +223,7 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- EDITOR STINTŮ -->
                 <div class="lg:col-span-5 space-y-4">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
                         <h4 class="text-sm font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wider">Pořadí jezdců a výměny pneu</h4>
@@ -223,6 +231,7 @@
                     </div>
                 </div>
 
+                <!-- ČASOVÁ OSA (TIMELINE) PREVIEW -->
                 <div class="lg:col-span-7 space-y-4">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg">
                         <div class="p-5 border-b border-slate-800 bg-slate-800/30 rounded-t-xl">
@@ -237,8 +246,10 @@
             
         </section>
 
+        <!-- ================= OBRAZOVKA 3: LIVE RACE (DASHBOARD) ================= -->
         <section id="screen-dashboard" class="hidden space-y-6">
 
+            <!-- ŘÁDEK 1: HLAVNÍ BUDÍKY STRATEGIE -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
@@ -259,8 +270,10 @@
                 </div>
             </div>
 
+            <!-- ŘÁDEK 2: PYTHON LIVE TELEMETRIE & ZDRAVÍ VOZU -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
+                <!-- JÍZDA A PROSTŘEDÍ -->
                 <div id="live-telemetry-widget" class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-2 gap-3 shadow-xl relative overflow-hidden">
                     <div id="tel-yellow-flag" class="hidden absolute inset-0 z-10 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm border-2 border-yellow-500 pointer-events-none">
                         <h2 class="text-2xl font-bold text-yellow-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,1)] animate-pulse">🟨 VLAJKA</h2>
@@ -281,6 +294,7 @@
                     </div>
                 </div>
 
+                <!-- CAR HEALTH & OPRAVY -->
                 <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-1 gap-3 shadow-xl">
                     <div class="flex flex-col justify-center items-center rounded-lg bg-slate-950 p-3 border border-slate-800 shadow-inner">
                         <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Voda / Olej</span>
@@ -294,6 +308,7 @@
                     </div>
                 </div>
 
+                <!-- TLAK PNEU -->
                 <div id="live-tires-widget" class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-center">
                     <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 text-center">🛞 Tlak (PSI)</h4>
                     <div class="grid grid-cols-2 gap-3">
@@ -304,18 +319,20 @@
                     </div>
                 </div>
 
+                <!-- SEKTORY A POSLEDNÍ KOLO -->
                 <div id="live-sectors-widget" class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-center">
                     <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">⏱️ Poslední Kolo</h4>
                     <div id="tel-last-lap-time" class="text-xl font-mono text-blue-400 font-bold text-center mb-2">-:--.---</div>
                     <div class="grid grid-cols-3 gap-2 text-center">
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S1</span><span id="tel-sec-1" class="text-xs font-mono font-bold text-slate-300">-</span></div>
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S2</span><span id="tel-sec-2" class="text-xs font-mono font-bold text-slate-300">-</span></div>
-                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S3</span><span id="tel-sec-3" class="text-xs font-mono font-bold text-slate-300">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S1</span><span id="tel-sec-1" class="text-xs font-mono font-bold text-slate-500">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S2</span><span id="tel-sec-2" class="text-xs font-mono font-bold text-slate-500">-</span></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded p-1"><span class="block text-[9px] text-slate-500">S3</span><span id="tel-sec-3" class="text-xs font-mono font-bold text-slate-500">-</span></div>
                     </div>
                 </div>
 
             </div>
 
+            <!-- ŘÁDEK 3: LEVÝ A PRAVÝ SLOUPEC -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 <div class="lg:col-span-5 xl:col-span-4 space-y-4">
@@ -408,6 +425,7 @@
             </div>
         </section>
 
+        <!-- ================= MODALY ================= -->
         <div id="practice-eval-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-emerald-500/50 rounded-xl max-w-2xl w-full p-6 shadow-[0_0_40px_rgba(16,185,129,0.2)] relative">
                 <h2 class="text-lg font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2"><span>📊</span> Vyhodnocení tréninku</h2>
@@ -684,29 +702,29 @@ function zpracujPracticeData() {
 
 // ==================== PYTHON & MQTT ====================
 
-// Nové funkce pro formátování a barvení delty a sektorů
 const nastavDeltu = (elId, val, textSizeClass = "text-3xl") => {
     let el = document.getElementById(elId);
     if(!el) return;
     if(val === undefined || val === null) return;
-    
-    // Zobrazení s prefixem + pro ztrátu
     let text = (val > 0 ? "+" : "") + val.toFixed(3);
     el.innerText = text;
-    
-    // Logika barev: Mínus (zelená), Plus (červená), Nula (bílá)
     if(val < 0) el.className = `${textSizeClass} font-mono font-bold text-emerald-400 transition-colors duration-300`;
     else if(val > 0) el.className = `${textSizeClass} font-mono font-bold text-red-500 transition-colors duration-300`;
     else el.className = `${textSizeClass} font-mono font-bold text-white transition-colors duration-300`;
 };
 
+// ================== ZMĚNĚNÁ FUNKCE SEKTORŮ ==================
+// Už žádné barvení a přidávání plusu, ukazuje se přesně čistý čas.
 const nastavSektor = (id, val) => {
     let el = document.getElementById(id);
-    if(!el || val === undefined || val === null) return;
-    el.innerText = (val > 0 ? "+" : "") + val.toFixed(2);
-    if(val < 0) el.className = "text-xs font-mono font-bold text-emerald-400";
-    else if(val > 0) el.className = "text-xs font-mono font-bold text-red-400";
-    else el.className = "text-xs font-mono font-bold text-slate-300";
+    if(!el) return;
+    if(val === undefined || val === null || val === 0) {
+        el.innerText = "-";
+        el.className = "text-xs font-mono font-bold text-slate-500";
+        return;
+    }
+    el.innerText = val.toFixed(2);
+    el.className = "text-xs font-mono font-bold text-slate-300";
 };
 
 function initMQTT(roomId) {
@@ -733,16 +751,16 @@ function onMessageArrived(message) {
             if(stav.isPracticeMode) {
                 if(d.delta_live !== undefined) nastavDeltu('prac-delta', d.delta_live, 'text-5xl');
                 if(d.fuel_level_l !== undefined) document.getElementById('prac-fuel').innerText = d.fuel_level_l.toFixed(1) + " L";
-                
-                // Přidáno zobrazení sektorů a posledního kola do tréninku
                 if(d.last_lap_time) document.getElementById('prac-last-lap').innerText = formatujCasKola(d.last_lap_time);
-                nastavSektor('prac-sec-1', d.sector_1); nastavSektor('prac-sec-2', d.sector_2); nastavSektor('prac-sec-3', d.sector_3);
+                
+                nastavSektor('prac-sec-1', d.sector_1); 
+                nastavSektor('prac-sec-2', d.sector_2); 
+                nastavSektor('prac-sec-3', d.sector_3);
             }
             
             // --- LIVE ZÁVOD (DASHBOARD) ---
             if(stav.isLiveMode) {
                 if(d.delta_live !== undefined) nastavDeltu('tel-delta', d.delta_live, 'text-3xl');
-                
                 if(d.fuel_level_l !== undefined) document.getElementById('tel-fuel').innerText = d.fuel_level_l.toFixed(1) + " L";
                 if(d.temp_track_c && d.temp_air_c) { document.getElementById('tel-temps').innerText = `${Math.round(d.temp_track_c)}° / ${Math.round(d.temp_air_c)}°`; }
                 
@@ -770,15 +788,16 @@ function onMessageArrived(message) {
                     document.getElementById('tel-repair-box').classList.remove('bg-red-900/50', 'border-red-500');
                 }
 
-                // TLAKY PNEU
                 if(d.tire_press_LF !== undefined) document.getElementById('press-fl-val').innerText = d.tire_press_LF.toFixed(1);
                 if(d.tire_press_RF !== undefined) document.getElementById('press-fr-val').innerText = d.tire_press_RF.toFixed(1);
                 if(d.tire_press_LR !== undefined) document.getElementById('press-rl-val').innerText = d.tire_press_LR.toFixed(1);
                 if(d.tire_press_RR !== undefined) document.getElementById('press-rr-val').innerText = d.tire_press_RR.toFixed(1);
                 
-                // POSLEDNÍ KOLO A SEKTORY
                 if(d.last_lap_time) document.getElementById('tel-last-lap-time').innerText = formatujCasKola(d.last_lap_time);
-                nastavSektor('tel-sec-1', d.sector_1); nastavSektor('tel-sec-2', d.sector_2); nastavSektor('tel-sec-3', d.sector_3);
+                
+                nastavSektor('tel-sec-1', d.sector_1); 
+                nastavSektor('tel-sec-2', d.sector_2); 
+                nastavSektor('tel-sec-3', d.sector_3);
             }
         }
 
