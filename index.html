@@ -99,14 +99,33 @@
                     <div class="flex items-center justify-center bg-slate-950 border border-slate-800 rounded-lg h-[42px] px-2 shadow-inner"><label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-semibold text-amber-400 uppercase tracking-wider select-none"><input id="setup-plus-one-lap" type="checkbox" checked class="w-4 h-4 rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0"><span>+ 1 kolo</span></label></div>
                 </div>
 
-                <div id="track-car-preview" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-6 items-center shadow-inner">
-                        <div class="w-24 h-24 md:w-32 md:h-32 bg-slate-900 rounded-lg flex items-center justify-center text-4xl md:text-5xl border border-slate-700 shadow-md overflow-hidden shrink-0"><span id="prev-track-emoji">📍</span><img id="prev-track-img" src="" class="hidden w-full h-full object-cover"></div>
-                        <div class="flex-1"><h4 id="prev-track-name" class="text-base md:text-lg font-bold text-blue-400 uppercase tracking-wider">Výběr Tratě</h4><div class="text-xs md:text-sm text-slate-400 mt-2 flex flex-col gap-1 font-mono"><span id="prev-track-pit">Boxy: -- s</span><span id="prev-track-corners">Zatáček: --</span></div></div>
+                <div id="track-car-preview" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-inner">
+                        <div class="w-full h-48 md:h-64 bg-slate-900 rounded-lg flex items-center justify-center text-5xl border border-slate-700 shadow-md overflow-hidden relative">
+                            <span id="prev-track-emoji">📍</span>
+                            <img id="prev-track-img" src="" class="hidden absolute inset-0 w-full h-full object-contain p-3">
+                        </div>
+                        <div class="text-center">
+                            <h4 id="prev-track-name" class="text-lg md:text-xl font-bold text-blue-400 uppercase tracking-wider">Výběr Tratě</h4>
+                            <div class="text-sm text-slate-400 mt-2 flex justify-center gap-6 font-mono">
+                                <span id="prev-track-pit">Boxy: -- s</span>
+                                <span id="prev-track-corners">Zatáček: --</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-6 items-center shadow-inner">
-                        <div class="w-24 h-24 md:w-32 md:h-32 bg-slate-900 rounded-lg flex items-center justify-center text-4xl md:text-5xl border border-slate-700 shadow-md overflow-hidden shrink-0"><span id="prev-car-emoji">🏎️</span><img id="prev-car-img" src="" class="hidden w-full h-full object-cover"></div>
-                        <div class="flex-1"><h4 id="prev-car-name" class="text-base md:text-lg font-bold text-emerald-400 uppercase tracking-wider">Výběr Auta</h4><div class="text-xs md:text-sm text-slate-400 mt-2 flex flex-col gap-1 font-mono"><span id="prev-car-tank">Nádrž: -- L</span><span id="prev-car-tires">Pneu: -- s</span></div></div>
+                    
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-inner">
+                        <div class="w-full h-48 md:h-64 bg-slate-900 rounded-lg flex items-center justify-center text-5xl border border-slate-700 shadow-md overflow-hidden relative">
+                            <span id="prev-car-emoji">🏎️</span>
+                            <img id="prev-car-img" src="" class="hidden absolute inset-0 w-full h-full object-contain p-3">
+                        </div>
+                        <div class="text-center">
+                            <h4 id="prev-car-name" class="text-lg md:text-xl font-bold text-emerald-400 uppercase tracking-wider">Výběr Auta</h4>
+                            <div class="text-sm text-slate-400 mt-2 flex justify-center gap-6 font-mono">
+                                <span id="prev-car-tank">Nádrž: -- L</span>
+                                <span id="prev-car-tires">Pneu: -- s</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -521,8 +540,8 @@ function inicializujDatabazi() {
         if (data) {
             stav = data;
             
-            // --- OPRAVA: OBNOVA SPOJENÍ S PYTHONEM PO REFRESHI NEBO PRO KOLEGY V TÝMU ---
-            if (stav.room_id && currentRoomId !== stav.room_id) {
+            // --- OPRAVA: Připoj telemetrii JEN když je reálně spuštěný závod nebo trénink ---
+            if (stav.room_id && currentRoomId !== stav.room_id && (stav.isLiveMode || stav.isPracticeMode)) {
                 initMQTT(stav.room_id);
             }
 
@@ -567,7 +586,6 @@ function zalozitRelaci() {
     let sid = Date.now().toString(); 
     TEAM_SESSIONS[sid] = { id: sid, eventName: eventName, trat_jmeno: trat_jmeno, auto_jmeno: auto_jmeno, delka_zavodu_hod: parseFloat(document.getElementById('setup-hours').value), format_plus_kolo: document.getElementById('setup-plus-one-lap').checked, start_time_str: document.getElementById('setup-start-time').value, room_id: document.getElementById('setup-room-id').value.trim() || "DreamTeam", jezdci: [], auto_data: DB_AUT[auto_jmeno], trat_data: DB_TRATI[trat_jmeno], setup: { p_fl: "", p_fr: "", p_rl: "", p_rr: "", c_fl: "", c_fr: "", c_rl: "", c_rr: "", t_fl: "", t_fr: "", t_rl: "", t_rr: "", arb_f: "", arb_r: "", wing: "", notes: "" } };
     OPEN_SESSIONS.add(sid); db.ref('active_sessions').set(TEAM_SESSIONS);
-    if(TEAM_SESSIONS[sid].room_id) { initMQTT(TEAM_SESSIONS[sid].room_id); }
     ukazUpozorneni(`Session '${eventName}' byla založena pro celý tým.`); return sid;
 }
 function smazatSession(event, sid) { if(event) event.stopPropagation(); if(confirm("Opravdu smazat tuto vytvořenou session a všechny její neuložené jezdce?")) { delete TEAM_SESSIONS[sid]; OPEN_SESSIONS.delete(sid); db.ref('active_sessions').set(TEAM_SESSIONS); ukazUpozorneni("Session byla smazána pro celý tým."); } }
@@ -727,13 +745,15 @@ function initMQTT(roomId) {
     currentRoomId = roomId; 
     let clientId = "iracing_web_" + Math.random().toString(16).substring(2, 10);
     
-    ukazUpozorneni(`Připojuji web k datům z Pythonu (Místnost: ${roomId})...`, "success");
+    ukazUpozorneni(`Připojuji telemetrii (Místnost: ${roomId})...`, "success");
 
     mqttClient = new Paho.MQTT.Client("broker.hivemq.com", Number(8884), "/mqtt", clientId);
     mqttClient.onMessageArrived = onMessageArrived;
     mqttClient.onConnectionLost = (responseObject) => { 
-        ukazUpozorneni("Spojení s telemetrií přerušeno. Zkouším znovu...", "error");
-        setTimeout(() => initMQTT(currentRoomId), 5000); 
+        if (stav.isPracticeMode || stav.isLiveMode) {
+            ukazUpozorneni("Spojení s telemetrií přerušeno. Zkouším znovu...", "error");
+            setTimeout(() => initMQTT(currentRoomId), 5000); 
+        }
     };
     mqttClient.connect({ 
         onSuccess: () => { 
@@ -849,7 +869,13 @@ function onMessageArrived(message) {
 }
 
 // Ostatní systémové fukce...
-function checkUrlRoom() { const room = new URLSearchParams(window.location.search).get('room'); if (room) { isHost = false; initMQTT(room); showShareLinkUI(room); } }
+function checkUrlRoom() { 
+    const room = new URLSearchParams(window.location.search).get('room'); 
+    if (room) { 
+        isHost = false; 
+        showShareLinkUI(room); 
+    } 
+}
 function showShareLinkUI(room) { const banner = document.getElementById('share-link-banner'); const input = document.getElementById('share-link-input'); if (banner && input) { input.value = window.location.protocol + "//" + window.location.host + window.location.pathname + '?room=' + room; document.getElementById('python-room-id-display').innerText = room; banner.classList.remove('hidden'); } }
 function kopirovatShareLink() { const input = document.getElementById('share-link-input'); if (input) { input.select(); navigator.clipboard.writeText(input.value); ukazUpozorneni("Odkaz zkopírován do schránky!"); } }
 
