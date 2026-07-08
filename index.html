@@ -540,7 +540,7 @@ function inicializujDatabazi() {
         if (data) {
             stav = data;
             
-            // --- OPRAVA: Připoj telemetrii JEN když je reálně spuštěný závod nebo trénink ---
+            // Připoj telemetrii JEN když je reálně spuštěný závod nebo trénink
             if (stav.room_id && currentRoomId !== stav.room_id && (stav.isLiveMode || stav.isPracticeMode)) {
                 initMQTT(stav.room_id);
             }
@@ -655,7 +655,6 @@ function ulozitManualnihoPilota() { let sid = document.getElementById('md-sessio
 function zacitTrenink(sid, index) {
     let s = TEAM_SESSIONS[sid]; 
 
-    // --- OPRAVA: POKUD NENÍ MQTT PŘIPOJENO, PŘIPOJ HO TEĎ ---
     if (s.room_id && currentRoomId !== s.room_id) {
         initMQTT(s.room_id);
     }
@@ -726,8 +725,6 @@ const nastavDeltu = (elId, val, textSizeClass = "text-3xl") => {
     else el.className = `${textSizeClass} font-mono font-bold text-white transition-colors duration-300`;
 };
 
-// ================== ZMĚNĚNÁ FUNKCE SEKTORŮ ==================
-// Už žádné barvení a přidávání plusu, ukazuje se přesně čistý čas.
 const nastavSektor = (id, val) => {
     let el = document.getElementById(id);
     if(!el) return;
@@ -815,10 +812,16 @@ function onMessageArrived(message) {
                     document.getElementById('tel-repair-box').classList.remove('bg-red-900/50', 'border-red-500');
                 }
 
-                if(d.tire_press_LF !== undefined) document.getElementById('press-fl-val').innerText = d.tire_press_LF.toFixed(1);
-                if(d.tire_press_RF !== undefined) document.getElementById('press-fr-val').innerText = d.tire_press_RF.toFixed(1);
-                if(d.tire_press_LR !== undefined) document.getElementById('press-rl-val').innerText = d.tire_press_LR.toFixed(1);
-                if(d.tire_press_RR !== undefined) document.getElementById('press-rr-val').innerText = d.tire_press_RR.toFixed(1);
+                // TLAKY PNEU - bere všechny možné formáty názvů proměnných z Pythonu
+                let fl = d.tire_press_LF ?? d.tire_press_fl ?? d.tire_press_FL ?? d.press_fl ?? null;
+                let fr = d.tire_press_RF ?? d.tire_press_fr ?? d.tire_press_FR ?? d.press_fr ?? null;
+                let rl = d.tire_press_LR ?? d.tire_press_rl ?? d.tire_press_RL ?? d.press_rl ?? null;
+                let rr = d.tire_press_RR ?? d.tire_press_rr ?? d.tire_press_RR ?? d.press_rr ?? null;
+                
+                if(fl !== null) document.getElementById('press-fl-val').innerText = parseFloat(fl).toFixed(1);
+                if(fr !== null) document.getElementById('press-fr-val').innerText = parseFloat(fr).toFixed(1);
+                if(rl !== null) document.getElementById('press-rl-val').innerText = parseFloat(rl).toFixed(1);
+                if(rr !== null) document.getElementById('press-rr-val').innerText = parseFloat(rr).toFixed(1);
                 
                 if(d.last_lap_time) document.getElementById('tel-last-lap-time').innerText = formatujCasKola(d.last_lap_time);
                 
@@ -833,6 +836,8 @@ function onMessageArrived(message) {
         // ==========================================
         if (payload.type === "NEW_LAP") {
             let d = payload.data; 
+            
+            // ODSTRANĚNA blokace nultého kola! Telemetrie ho teď propustí a odečte palivo.
             
             if (stav.isPracticeMode) {
                 stav.practice_laps.push({ raw_id: Date.now(), kolo: d.kolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, isCrash: d.isCrash || false, isWet: false, infoNote: d.note || "" });
@@ -892,7 +897,7 @@ function generujStrategiiZRelace(sid) {
     
     stav.jezdci = JSON.parse(JSON.stringify(s.jezdci)); stav.trat_jmeno = s.trat_jmeno; stav.auto_jmeno = s.auto_jmeno; stav.delka_zavodu_hod = s.delka_zavodu_hod; stav.format_plus_kolo = s.format_plus_kolo; stav.start_time_str = s.start_time_str; stav.auto_data = s.auto_data; stav.trat_data = s.trat_data; stav.aktualni_setup = s.setup ? JSON.parse(JSON.stringify(s.setup)) : {};
     
-    stav.room_id = s.room_id; // --- OPRAVA: PŘENOS ROOM ID PRO LIVE ZÁVOD A OSTATNÍ KLIENTY ---
+    stav.room_id = s.room_id; 
 
     stav.stinty = []; let max_cas_sec = stav.delka_zavodu_hod * 3600; let sim_cas = 0, idx_j = 0;
     while (sim_cas < max_cas_sec) {
@@ -955,13 +960,58 @@ function zapisLiveKolo() {
 }
 function vykresliHistoriiZavodu() {
     let tbody = document.getElementById('live-laps-history-tbody'); let html = ''; if(!stav.historie_kol) stav.historie_kol = [];
-    [...stav.historie_kol].reverse().forEach(k => {
-        let noteHtml = k.note ? `<span class="text-xs text-slate-400 block">${k.note}</span>` : ''; let pitHtml = k.isPit ? `<span class="bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold mr-2 inline-block">ZASTÁVKA BOX</span>` : '';
-        html += `<tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"><td class="p-3 text-center font-mono font-bold text-slate-400 bg-slate-900/50">${k.kolo}</td><td class="p-3 text-center font-mono font-bold text-blue-400 text-sm">${formatujCasKola(k.cas)}</td><td class="p-3 text-center font-mono text-amber-500">${k.spotreba.toFixed(3)} L</td><td class="p-3 text-left">${pitHtml} ${noteHtml}</td></tr>`;
-    });
+    
+    // Procházíme odzadu, aby nejnovější kolo bylo nahoře, ale držíme si index pro mazání
+    for (let i = stav.historie_kol.length - 1; i >= 0; i--) {
+        let k = stav.historie_kol[i];
+        let noteHtml = k.note ? `<span class="text-xs text-slate-400 block">${k.note}</span>` : ''; 
+        let pitHtml = k.isPit ? `<span class="bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold mr-2 inline-block">ZASTÁVKA BOX</span>` : '';
+        
+        html += `<tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+            <td class="p-3 text-center font-mono font-bold text-slate-400 bg-slate-900/50 w-12">${k.kolo}</td>
+            <td class="p-3 text-center font-mono font-bold text-blue-400 text-sm">${formatujCasKola(k.cas)}</td>
+            <td class="p-3 text-center font-mono text-amber-500">${k.spotreba.toFixed(3)} L</td>
+            <td class="p-3 text-left flex justify-between items-center w-full">
+                <div>${pitHtml} ${noteHtml}</div> 
+                <button onclick="smazatLiveKolo(${i})" class="text-red-500 hover:text-red-400 ml-4 px-2 py-1 bg-red-900/30 border border-red-500/30 rounded transition-colors" title="Smazat toto kolo (falešné kolo/chyba)">🗑️</button>
+            </td>
+        </tr>`;
+    }
+    
     tbody.innerHTML = html;
-    if(stav.historie_kol.length > 0) { let last = stav.historie_kol[stav.historie_kol.length - 1]; document.getElementById('last-lap-time').innerText = formatujCasKola(last.cas); } else { tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Zatím nebylo zapsáno žádné kolo v závodě.</td></tr>'; document.getElementById('last-lap-time').innerText = "-:--.---"; }
+    if(stav.historie_kol.length > 0) { 
+        let last = stav.historie_kol[stav.historie_kol.length - 1]; 
+        document.getElementById('last-lap-time').innerText = formatujCasKola(last.cas); 
+    } else { 
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Zatím nebylo zapsáno žádné kolo v závodě.</td></tr>'; 
+        document.getElementById('last-lap-time').innerText = "-:--.---"; 
+    }
 }
+
+// ZCELA NOVÁ FUNKCE NA SMAZÁNÍ KOLA A VRÁCENÍ (NEBO NE) PALIVA
+function smazatLiveKolo(index) {
+    if(confirm("Opravdu smazat toto kolo z historie? (Zmizí z výpočtů průměrů)")) {
+        let smazano = stav.historie_kol.splice(index, 1)[0];
+        
+        // Zásadní dotaz na palivo - přesně na tohle jsi narazil
+        if(confirm("Vrátit spotřebované palivo (" + smazano.spotreba.toFixed(2) + " L) zpět do nádrže?\n\n[ OK ] = Vrátit palivo (když telemetrie poslala úplný nesmysl)\n[ ZRUŠIT ] = Nevracet (např. zaváděcí kolo nebo výjezd z boxů, kdy se palivo reálně spálilo)")) {
+            stav.palivo_v_aute += smazano.spotreba;
+            if(stav.palivo_v_aute > Number(stav.auto_data.nadrz_l)) {
+                stav.palivo_v_aute = Number(stav.auto_data.nadrz_l);
+            }
+            ukazUpozorneni(`Kolo smazáno. Palivo vráceno zpět.`);
+        } else {
+            ukazUpozorneni(`Kolo smazáno z průměrů, ale palivo zůstalo odečteno!`);
+        }
+        
+        db.ref('live_race/historie_kol').set(stav.historie_kol);
+        db.ref('live_race/palivo_v_aute').set(stav.palivo_v_aute);
+        
+        vykresliHistoriiZavodu();
+        aktualizujLiveBudiky();
+    }
+}
+
 function ukonciZavod() { if(confirm("Opravdu ukončit? Pro všechny klienty se ukončí spojení a vrátíte se do garáže.")) { db.ref('live_race').remove(); } }
 
 // Zbytek DB operací...
