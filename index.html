@@ -937,11 +937,14 @@ function prepocitejLiveZavodStrategii() {
             ? stav.stinty[currentStintIndex].jezdec_jmeno 
             : (stav.jezdci && stav.jezdci[currentStintIndex % stav.jezdci.length] ? stav.jezdci[currentStintIndex % stav.jezdci.length].jmeno : "Pilot");
             
-        if (!lap.isPit && lap.cas > 30 && lap.spotreba > 0.5) {
+        // ROBUSTNÍ KONTROLA TYPŮ: Ošetření isPit z Pythonu (boolean, string i number)
+        let isPitLap = (lap.isPit === true || lap.isPit === 1 || lap.isPit === "true" || lap.isPit === "1");
+            
+        if (!isPitLap && lap.cas > 30 && lap.spotreba > 0.5) {
             if(!driverLaps[dName]) driverLaps[dName] = [];
             driverLaps[dName].push(lap);
         }
-        if (lap.isPit) currentStintIndex++;
+        if (isPitLap) currentStintIndex++;
     });
 
     // 2. FUNKCE PRO ZÍSKÁNÍ TEMPA KONKRÉTNÍHO PILOTA
@@ -970,9 +973,15 @@ function prepocitejLiveZavodStrategii() {
     let activePace = getDriverPace(activeDriverName);
     let pilotZkratka = activeDriverName.substring(0, 3).toUpperCase();
 
-    let kalibraceStatusHtml = activePace.isLive 
-        ? `<span class="text-emerald-400 font-mono text-xs bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800" title="Zprůměrováno všech ${activePace.numLaps} kol pilota">✅ ${pilotZkratka} - ŽIVÁ DATA (${activePace.numLaps} kol)</span>` 
-        : `<span class="text-amber-400 font-mono text-xs bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800" title="Čekám na 6 čistých kol pilota">🔄 KALIBRACE: ${pilotZkratka} (${activePace.numLaps}/6)</span>`;
+    // INTUITIVNĚJŠÍ ODPOČET KALIBRACE
+    let kalibraceStatusHtml = "";
+    if (activePace.isLive) {
+        kalibraceStatusHtml = `<span class="text-emerald-400 font-mono text-xs bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800" title="Zprůměrováno všech ${activePace.numLaps} kol pilota">✅ ${pilotZkratka} - ŽIVÁ DATA (${activePace.numLaps} kol)</span>`;
+    } else {
+        let zbyvaKalibrace = 6 - activePace.numLaps;
+        let tvarKol = (zbyvaKalibrace >= 5) ? "kol" : (zbyvaKalibrace >= 2 ? "kola" : "kolo");
+        kalibraceStatusHtml = `<span class="text-amber-400 font-mono text-xs bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800" title="Čekám na 6 čistých kol pilota">🔄 KALIBRACE: ${pilotZkratka} (Zbývá ${zbyvaKalibrace} ${tvarKol})</span>`;
+    }
 
     let gaugeFuelAvgEl = document.getElementById('gauge-fuel-avg');
     if (gaugeFuelAvgEl) gaugeFuelAvgEl.innerText = `${activePace.fuel.toFixed(2)} L/k`;
@@ -1073,6 +1082,9 @@ function prepocitejLiveZavodStrategii() {
 
     let gaugeLapsEl = document.getElementById('gauge-laps');
     if (gaugeLapsEl) gaugeLapsEl.innerText = `${ujeta_kola_celkem} / ${loop_kolo} kol`;
+    
+    // ZABRÁNĚNÍ REFERENCE ERRORU: Přesná definice pristiBoxKolo
+    let pristiBoxKolo = ujeta_kola_celkem + kola_do_konce_aktualniho_stintu;
     
     let sumNextPitEl = document.getElementById('sum-next-pit');
     if (sumNextPitEl) {
