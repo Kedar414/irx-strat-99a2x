@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     
+    <!-- FIREBASE KNIHOVNY -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -31,6 +32,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-blue-500 selection:text-white">
 
+    <!-- AUTH OVERLAY -->
     <div id="auth-overlay" class="fixed inset-0 z-[99999] bg-slate-950 flex items-center justify-center transition-opacity duration-500">
         <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-sm text-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-500"></div>
@@ -73,6 +75,7 @@
             </div>
         </div>
 
+        <!-- ================= OBRAZOVKA 1: NASTAVENÍ A TRÉNINKY ================= -->
         <section id="screen-setup" class="space-y-6">
 
             <div id="setup-init-block" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative overflow-hidden transition-all duration-300">
@@ -100,6 +103,7 @@
                 </div>
 
                 <div id="track-car-preview" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- NÁHLED TRATĚ -->
                     <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-inner">
                         <div class="w-full h-48 md:h-64 bg-slate-900 rounded-lg flex items-center justify-center text-5xl border border-slate-700 shadow-md overflow-hidden relative">
                             <span id="prev-track-emoji">📍</span>
@@ -114,6 +118,7 @@
                         </div>
                     </div>
                     
+                    <!-- NÁHLED AUTA -->
                     <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-inner">
                         <div class="w-full h-48 md:h-64 bg-slate-900 rounded-lg flex items-center justify-center text-5xl border border-slate-700 shadow-md overflow-hidden relative">
                             <span id="prev-car-emoji">🏎️</span>
@@ -142,6 +147,7 @@
             <div id="sessions-container" class="space-y-6 mt-8"></div>
         </section>
 
+        <!-- ================= OBRAZOVKA TRÉNINK (PRACTICE) ================= -->
         <section id="screen-practice" class="hidden space-y-6">
             
             <div class="bg-slate-900 border border-emerald-500/50 rounded-xl p-5 shadow-[0_0_30px_rgba(16,185,129,0.15)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -154,6 +160,7 @@
                 </button>
             </div>
 
+            <!-- MINI TELEMETRIE PRO TRÉNINK -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div class="md:col-span-4 flex flex-col justify-center items-center rounded-xl p-4 bg-slate-900 border border-slate-800 shadow-lg transition-colors duration-200" id="prac-delta-box">
                     <span class="text-[10px] uppercase text-slate-400 font-bold tracking-widest mb-1">Live Delta</span>
@@ -174,6 +181,7 @@
                 </div>
             </div>
 
+            <!-- HISTORIE KOL V TRÉNINKU -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
                 <div class="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
                     <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><span>⏱️</span> Zaznamenaná kola v tomto tréninku</h4>
@@ -221,6 +229,7 @@
 
         </section>
 
+        <!-- ================= OBRAZOVKA 2: STRATEGIE (NÁHLED) ================= -->
         <section id="screen-strategy" class="hidden space-y-6">
             
             <div class="bg-slate-900 border border-blue-500/50 rounded-xl p-5 shadow-[0_0_30px_rgba(59,130,246,0.15)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -235,6 +244,7 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- EDITOR STINTŮ -->
                 <div class="lg:col-span-5 space-y-4">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
                         <h4 class="text-sm font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2 uppercase tracking-wider">Pořadí jezdců a výměny pneu</h4>
@@ -242,6 +252,7 @@
                     </div>
                 </div>
 
+                <!-- ČASOVÁ OSA (TIMELINE) PREVIEW -->
                 <div class="lg:col-span-7 space-y-4">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg">
                         <div class="p-5 border-b border-slate-800 bg-slate-800/30 rounded-t-xl">
@@ -256,8 +267,10 @@
             
         </section>
 
+        <!-- ================= OBRAZOVKA 3: LIVE RACE (DASHBOARD) ================= -->
         <section id="screen-dashboard" class="hidden space-y-6">
 
+            <!-- ŘÁDEK 1: HLAVNÍ BUDÍKY STRATEGIE -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
@@ -278,8 +291,10 @@
                 </div>
             </div>
 
+            <!-- ŘÁDEK 2: PYTHON LIVE TELEMETRIE & ZDRAVÍ VOZU -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
+                <!-- JÍZDA A PROSTŘEDÍ -->
                 <div id="live-telemetry-widget" class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-2 gap-3 shadow-xl relative overflow-hidden">
                     <div id="tel-yellow-flag" class="hidden absolute inset-0 z-10 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm border-2 border-yellow-500 pointer-events-none">
                         <h2 class="text-2xl font-bold text-yellow-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,1)] animate-pulse">🟨 VLAJKA</h2>
@@ -300,6 +315,7 @@
                     </div>
                 </div>
 
+                <!-- CAR HEALTH & OPRAVY -->
                 <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-1 gap-3 shadow-xl">
                     <div class="flex flex-col justify-center items-center rounded-lg bg-slate-950 p-3 border border-slate-800 shadow-inner">
                         <span class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Voda / Olej</span>
@@ -313,6 +329,7 @@
                     </div>
                 </div>
 
+                <!-- TLAK PNEU -->
                 <div id="live-tires-widget" class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-center">
                     <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 text-center">🛞 Tlak (PSI)</h4>
                     <div class="grid grid-cols-2 gap-3">
@@ -323,6 +340,7 @@
                     </div>
                 </div>
 
+                <!-- SEKTORY A POSLEDNÍ KOLO -->
                 <div id="live-sectors-widget" class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-center">
                     <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">⏱️ Poslední Kolo</h4>
                     <div id="tel-last-lap-time" class="text-xl font-mono text-blue-400 font-bold text-center mb-2">-:--.---</div>
@@ -335,6 +353,7 @@
 
             </div>
 
+            <!-- ŘÁDEK 3: LEVÝ A PRAVÝ SLOUPEC -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 <div class="lg:col-span-5 xl:col-span-4 space-y-4">
@@ -427,6 +446,7 @@
             </div>
         </section>
 
+        <!-- ================= MODALY ================= -->
         <div id="practice-eval-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-emerald-500/50 rounded-xl max-w-2xl w-full p-6 shadow-[0_0_40px_rgba(16,185,129,0.2)] relative">
                 <h2 class="text-lg font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2"><span>📊</span> Vyhodnocení tréninku</h2>
@@ -697,8 +717,8 @@ function ukoncitTreninkNavrat() { stav.isPracticeMode = false; stav.practice_lap
 function pridatManualniKoloTreningu() {
     const min = parseInt(document.getElementById('prac-manual-min').value) || 0; const sec = parseInt(document.getElementById('prac-manual-sec').value) || 0; const ms = parseInt(document.getElementById('prac-manual-ms').value) || 0; const parsedTime = (min * 60) + sec + (ms / 1000); const fuel = parseFloat(document.getElementById('prac-manual-fuel').value);
     if (parsedTime <= 0 || !fuel) { ukazUpozorneni("Zkontrolujte čas a palivo.", "error"); return; }
-    let koloNum = stav.practice_laps.length > 0 ? stav.practice_laps[stav.practice_laps.length-1].kolo + 1 : 1;
-    stav.practice_laps.push({ raw_id: Date.now(), kolo: koloNum, cas: parsedTime, spotreba: fuel, isPit: false, isCrash: false, isWet: false, infoNote: "Zadáno ručně" }); zpracujPracticeData();
+    let naseKolo = stav.practice_laps.length > 0 ? stav.practice_laps[stav.practice_laps.length-1].kolo + 1 : 1;
+    stav.practice_laps.push({ raw_id: Date.now(), kolo: naseKolo, cas: parsedTime, spotreba: fuel, isPit: false, isCrash: false, isWet: false, infoNote: "Zadáno ručně" }); zpracujPracticeData();
     document.getElementById('prac-manual-min').value = ''; document.getElementById('prac-manual-sec').value = ''; document.getElementById('prac-manual-ms').value = ''; document.getElementById('prac-manual-fuel').value = ''; ukazUpozorneni("Kolo přidáno ručně.");
 }
 function zpracujPracticeData() {
@@ -735,6 +755,15 @@ const nastavSektor = (id, val) => {
     }
     el.innerText = val.toFixed(2);
     el.className = "text-xs font-mono font-bold text-slate-300";
+};
+
+// Pomocná funkce pro zobrazení tlaku (s převodem kPa -> PSI)
+const displayPress = (id, val) => {
+    if(val !== null && val !== undefined) {
+        let p = parseFloat(val);
+        if(p > 50) p = p * 0.1450377; // Převod z iRacing raw kPa na PSI
+        document.getElementById(id).innerText = p.toFixed(1);
+    }
 };
 
 function initMQTT(roomId) {
@@ -788,8 +817,16 @@ function onMessageArrived(message) {
                 if(d.fuel_level_l !== undefined) document.getElementById('tel-fuel').innerText = d.fuel_level_l.toFixed(1) + " L";
                 if(d.temp_track_c && d.temp_air_c) { document.getElementById('tel-temps').innerText = `${Math.round(d.temp_track_c)}° / ${Math.round(d.temp_air_c)}°`; }
                 
+                // --- OPRAVA: Déšť a mokrá trať ---
                 if(d.track_wetness !== undefined) {
-                    if(d.track_wetness > 0) document.getElementById('tel-wetness').classList.remove('hidden');
+                    let isWet = false;
+                    if (typeof d.track_wetness === 'boolean') {
+                        isWet = d.track_wetness;
+                    } else if (Number(d.track_wetness) > 1) { 
+                        // iRacing posílá 1 pro "Mostly Dry". Prší až když pošle > 1.
+                        isWet = true; 
+                    }
+                    if(isWet) document.getElementById('tel-wetness').classList.remove('hidden');
                     else document.getElementById('tel-wetness').classList.add('hidden');
                 }
                 
@@ -812,16 +849,16 @@ function onMessageArrived(message) {
                     document.getElementById('tel-repair-box').classList.remove('bg-red-900/50', 'border-red-500');
                 }
 
-                // TLAKY PNEU - bere všechny možné formáty názvů proměnných z Pythonu
-                let fl = d.tire_press_LF ?? d.tire_press_fl ?? d.tire_press_FL ?? d.press_fl ?? null;
-                let fr = d.tire_press_RF ?? d.tire_press_fr ?? d.tire_press_FR ?? d.press_fr ?? null;
-                let rl = d.tire_press_LR ?? d.tire_press_rl ?? d.tire_press_RL ?? d.press_rl ?? null;
-                let rr = d.tire_press_RR ?? d.tire_press_rr ?? d.tire_press_RR ?? d.press_rr ?? null;
+                // --- OPRAVA: Tlaky pneu a jednotky ---
+                let fl = d.LFpressure ?? d.tire_press_LF ?? d.press_fl ?? d.LFcoldPressure ?? d.tire_press_fl ?? null;
+                let fr = d.RFpressure ?? d.tire_press_RF ?? d.press_fr ?? d.RFcoldPressure ?? d.tire_press_fr ?? null;
+                let rl = d.LRpressure ?? d.tire_press_LR ?? d.press_rl ?? d.LRcoldPressure ?? d.tire_press_rl ?? null;
+                let rr = d.RRpressure ?? d.tire_press_RR ?? d.press_rr ?? d.RRcoldPressure ?? d.tire_press_rr ?? null;
                 
-                if(fl !== null) document.getElementById('press-fl-val').innerText = parseFloat(fl).toFixed(1);
-                if(fr !== null) document.getElementById('press-fr-val').innerText = parseFloat(fr).toFixed(1);
-                if(rl !== null) document.getElementById('press-rl-val').innerText = parseFloat(rl).toFixed(1);
-                if(rr !== null) document.getElementById('press-rr-val').innerText = parseFloat(rr).toFixed(1);
+                displayPress('press-fl-val', fl);
+                displayPress('press-fr-val', fr);
+                displayPress('press-rl-val', rl);
+                displayPress('press-rr-val', rr);
                 
                 if(d.last_lap_time) document.getElementById('tel-last-lap-time').innerText = formatujCasKola(d.last_lap_time);
                 
@@ -837,10 +874,13 @@ function onMessageArrived(message) {
         if (payload.type === "NEW_LAP") {
             let d = payload.data; 
             
-            // ODSTRANĚNA blokace nultého kola! Telemetrie ho teď propustí a odečte palivo.
+            // --- OPRAVA: Počítání kol od 1 a ne od 2 ---
+            // Web si od teď kola počítá sám od jedničky nahoru. Úplně ignorujeme číslo 
+            // kola, které nám podsouvá Python (protože iRacing ho blbě čísluje jako už započaté kolo 2).
             
             if (stav.isPracticeMode) {
-                stav.practice_laps.push({ raw_id: Date.now(), kolo: d.kolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, isCrash: d.isCrash || false, isWet: false, infoNote: d.note || "" });
+                let naseKolo = stav.practice_laps.length > 0 ? stav.practice_laps[stav.practice_laps.length-1].kolo + 1 : 1;
+                stav.practice_laps.push({ raw_id: Date.now(), kolo: naseKolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, isCrash: d.isCrash || false, isWet: false, infoNote: d.note || "" });
                 zpracujPracticeData();
                 document.getElementById('prac-last-lap').innerText = formatujCasKola(d.cas);
                 ukazUpozorneni(`Zapsáno tréninkové kolo: ${formatujCasKola(d.cas)}`);
@@ -848,13 +888,12 @@ function onMessageArrived(message) {
 
             if (stav.isLiveMode) {
                 if(!stav.historie_kol) stav.historie_kol = [];
-                let existingIndex = stav.historie_kol.findIndex(k => k.kolo === d.kolo);
-                if(existingIndex !== -1) { 
-                    stav.historie_kol[existingIndex] = {kolo: d.kolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, note: d.note || ""}; 
-                } else { 
-                    stav.historie_kol.push({kolo: d.kolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, note: d.note || ""}); 
-                    stav.historie_kol.sort((a,b) => a.kolo - b.kolo); 
-                }
+                
+                // Přidělíme kolu číslo o 1 větší než má poslední kolo v tabulce. Začínáme na jedničce.
+                let naseKolo = stav.historie_kol.length > 0 ? stav.historie_kol[stav.historie_kol.length - 1].kolo + 1 : 1;
+                
+                stav.historie_kol.push({kolo: naseKolo, cas: d.cas, spotreba: d.spotreba, isPit: d.isPit || false, note: d.note || ""}); 
+                stav.historie_kol.sort((a,b) => a.kolo - b.kolo); 
                 
                 stav.palivo_v_aute -= d.spotreba; 
                 if(stav.palivo_v_aute < 0) stav.palivo_v_aute = 0; 
@@ -865,7 +904,7 @@ function onMessageArrived(message) {
                 
                 vykresliHistoriiZavodu();
                 aktualizujLiveBudiky();
-                ukazUpozorneni(`Závod: Kolo ${d.kolo} zapsáno do tabulky!`);
+                ukazUpozorneni(`Závod: Kolo ${naseKolo} zapsáno do tabulky!`);
             }
         }
     } catch(e) {
