@@ -572,6 +572,17 @@ function parseLapTime(inputStr) { inputStr = String(inputStr).trim(); if (!input
 function formatujCasKola(sekundy) { if (!sekundy || isNaN(sekundy)) return "-"; const m = Math.floor(sekundy / 60); const s = (sekundy % 60).toFixed(3); return m > 0 ? `${m}:${String(s).padStart(6, '0')}` : `${s}s`; }
 function formatujSekundy(sekundy) { if (sekundy < 0) sekundy = 0; const h = Math.floor(sekundy / 3600); const m = Math.floor((sekundy % 3600) / 60); const s = (sekundy % 60).toFixed(0); return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`; }
 
+function getRealTimeStr(baseTimeStr, offsetSeconds) {
+    if (!baseTimeStr) return "";
+    let parts = baseTimeStr.split(':');
+    if (parts.length !== 2) return "";
+    let baseSec = (parseInt(parts[0]) * 3600) + (parseInt(parts[1]) * 60);
+    let totalSec = baseSec + offsetSeconds;
+    let h = Math.floor(totalSec / 3600) % 24;
+    let m = Math.floor((totalSec % 3600) / 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 // ==================== UI A GARÁŽ ====================
 function obnovDropdownMenu() { const trackSelect = document.getElementById('setup-track'); const carSelect = document.getElementById('setup-car'); trackSelect.innerHTML = ''; carSelect.innerHTML = ''; Object.keys(DB_TRATI).forEach(t => { let opt = document.createElement('option'); opt.value = t; opt.text = t; trackSelect.appendChild(opt); }); Object.keys(DB_AUT).forEach(a => { let opt = document.createElement('option'); opt.value = a; opt.text = a; carSelect.appendChild(opt); }); aktualizujNahledy(); }
 function aktualizujNahledy() {
@@ -1070,10 +1081,12 @@ function prepocitejLiveZavodStrategii() {
         </div>`;
     }
 
+    // --- VÝPOČET REÁLNÉHO ČASU ---
+    let current_race_time_offset = odjety_cas_zavodu; // vteřiny od startu závodu
+
     // --- 4. ROZPRACOVANÝ / PRVNÍ STINT ---
     if (zbyva_cas_smycka > 0) {
         let zbyva_kol_aktivni_stint = Math.ceil(zbyva_cas_smycka / activePace.cas);
-        // V režimu preview bereme kapacitu plné nádrže, ne odhad zbývajícího paliva z jízdy
         let dostupna_kola = stav.isStrategyPreview ? Math.floor(fuelTankL / activePace.fuel) : kola_do_konce_aktualniho_stintu;
         let kola_v_tomto_stintu = Math.min(dostupna_kola, zbyva_kol_aktivni_stint);
         if (kola_v_tomto_stintu <= 0 && zbyva_cas_smycka > 0) kola_v_tomto_stintu = Math.min(Math.floor(fuelTankL / activePace.fuel), zbyva_kol_aktivni_stint);
@@ -1084,9 +1097,16 @@ function prepocitejLiveZavodStrategii() {
         
         let trvani_stintu = kola_v_tomto_stintu * activePace.cas;
         zbyva_cas_smycka -= trvani_stintu;
+
+        // Formátování hodin
+        let t_start_str = getRealTimeStr(stav.start_time_str, current_race_time_offset);
+        let t_end_str = getRealTimeStr(stav.start_time_str, current_race_time_offset + trvani_stintu);
+        let timeLabel = stav.start_time_str ? `${t_start_str} - ${t_end_str}` : "";
         
         let cardTitle = stav.isStrategyPreview ? `PLÁNOVANÝ STINT (${activeDriverName})` : `AKTUÁLNÍ STINT (${activeDriverName})`;
-        html += buildStintCardHtml(cardTitle, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, activePace.cas, kola_v_tomto_stintu * activePace.fuel, false, !stav.isStrategyPreview);
+        html += buildStintCardHtml(cardTitle, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, activePace.cas, kola_v_tomto_stintu * activePace.fuel, false, !stav.isStrategyPreview, timeLabel);
+        
+        current_race_time_offset += trvani_stintu; // Posun času pro další stint
     }
     
     // --- 5. BUDOUCÍ PLÁNOVANÉ STINTY ---
@@ -1114,14 +1134,28 @@ function prepocitejLiveZavodStrategii() {
         loop_kolo += kola_v_tomto_stintu;
         
         let tankovani = (kola_v_tomto_stintu * nextPace.fuel) / fuelSpeed;
-        zbyva_cas_smycka -= (pneu_a_pit_ztrata + tankovani); 
+        
+        let meni_pneu = true;
+        if (kola_v_tomto_stintu < (max_kola / 2) && (zbyva_cas_smycka - (kola_v_tomto_stintu * nextPace.cas)) <= 600) { 
+            meni_pneu = false; 
+        }
+
+        let akt_ztrata_pitu = pitLossSec + tankovani + (meni_pneu ? tyreTimeSec : 0);
+        zbyva_cas_smycka -= akt_ztrata_pitu; 
+        current_race_time_offset += akt_ztrata_pitu; // Započtení času stráveného v boxech
         
         let trvani_stintu = kola_v_tomto_stintu * nextPace.cas;
         zbyva_cas_smycka -= trvani_stintu;
+
+        // Formátování hodin
+        let t_start_str = getRealTimeStr(stav.start_time_str, current_race_time_offset);
+        let t_end_str = getRealTimeStr(stav.start_time_str, current_race_time_offset + trvani_stintu);
+        let timeLabel = stav.start_time_str ? `${t_start_str} - ${t_end_str}` : "";
         
-        let jeSplash = (zbyva_cas_smycka <= 0 && kola_v_tomto_stintu <= 6);
-        html += buildStintCardHtml(`PLÁNOVANÝ STINT (${nextDName})`, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, nextPace.cas, kola_v_tomto_stintu * nextPace.fuel, !jeSplash, false);
+        html += buildStintCardHtml(`PLÁNOVANÝ STINT (${nextDName})`, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, nextPace.cas, kola_v_tomto_stintu * nextPace.fuel, meni_pneu, false, timeLabel);
         
+        current_race_time_offset += trvani_stintu; // Posun času pro další stint
+
         futureIndex++;
         if(loop_kolo > 1500) break;
     }
@@ -1196,10 +1230,12 @@ function prepocitejLiveZavodStrategii() {
     }
 }
 
-function buildStintCardHtml(typ, cislo, start_k, konec_k, kola, avgCas, palivo, pneu, isCurrent) {
+function buildStintCardHtml(typ, cislo, start_k, konec_k, kola, avgCas, palivo, pneu, isCurrent, timeStr = "") {
     let borderCol = isCurrent ? "border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)] bg-slate-900/80" : "border-slate-800 bg-slate-900/50";
     let dotCol = isCurrent ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]";
     
+    let timeHtml = timeStr ? `<span class="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded border border-blue-800/50 shadow-inner flex items-center gap-1">🕒 ${timeStr}</span>` : '';
+
     return `
     <div class="relative pl-6 pb-4 border-l-2 border-slate-700 last:border-transparent last:pb-0">
         <div class="absolute w-4 h-4 rounded-full ${dotCol} -left-[9px] top-1"></div>
@@ -1207,6 +1243,7 @@ function buildStintCardHtml(typ, cislo, start_k, konec_k, kola, avgCas, palivo, 
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
                 <h4 class="text-xs font-bold text-slate-200">${typ}</h4>
                 <div class="flex flex-wrap gap-1 text-[10px] font-mono font-bold">
+                    ${timeHtml}
                     <span class="bg-slate-950 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shadow-inner">Kolo ${start_k} - ${konec_k}</span>
                 </div>
             </div>
