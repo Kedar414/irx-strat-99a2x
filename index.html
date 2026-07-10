@@ -887,32 +887,83 @@ function vykresliLineupy() { const container = document.getElementById('lineups-
 function generujStrategiiZRelace(sid) {
     let s = TEAM_SESSIONS[sid];
     if(!s || !s.jezdci || s.jezdci.length === 0) { ukazUpozorneni("Přidejte do relace alespoň jednoho pilota.", "error"); return; }
-    let hasData = s.jezdci.some(j => j.cas > 0 || j.cas_eco > 0);
-    if (!hasData) { ukazUpozorneni("Alespoň jeden pilot musí mít odjetý trénink nebo zapsaná data.", "error"); return; }
     
-    stav.jezdci = JSON.parse(JSON.stringify(s.jezdci)); stav.trat_jmeno = s.trat_jmeno; stav.auto_jmeno = s.auto_jmeno; stav.delka_zavodu_hod = s.delka_zavodu_hod; stav.format_plus_kolo = s.format_plus_kolo; stav.start_time_str = s.start_time_str; stav.auto_data = s.auto_data; stav.trat_data = s.trat_data; stav.aktualni_setup = s.setup ? JSON.parse(JSON.stringify(s.setup)) : {};
-    stav.room_id = s.room_id; stav.stinty = [];
+    // Check if at least one pilot has valid pace/fuel data
+    let hasData = s.jezdci.some(j => (j.cas > 0 && j.spotreba > 0) || (j.cas_eco > 0 && j.spotreba_eco > 0));
+    if (!hasData) { ukazUpozorneni("Alespoň jeden pilot musí mít odjetý trénink nebo zapsaná data (čas a spotřebu).", "error"); return; }
     
-    let max_cas_sec = stav.delka_zavodu_hod * 3600; let sim_cas = 0, idx_j = 0;
-    while (sim_cas < max_cas_sec) {
+    stav.jezdci = JSON.parse(JSON.stringify(s.jezdci)); 
+    stav.trat_jmeno = s.trat_jmeno; 
+    stav.auto_jmeno = s.auto_jmeno; 
+    stav.delka_zavodu_hod = Number(s.delka_zavodu_hod) || 6.0; 
+    stav.format_plus_kolo = s.format_plus_kolo; 
+    stav.start_time_str = s.start_time_str; 
+    
+    // Ensure car and track data exists, fallback to defaults if undefined
+    stav.auto_data = s.auto_data || { nadrz_l: 100, rychlost_tankovani_l_za_s: 3.0, cas_pneu_sec: 25.0 }; 
+    stav.trat_data = s.trat_data || { pit_lane_loss_sec: 25.0 }; 
+    
+    stav.aktualni_setup = s.setup ? JSON.parse(JSON.stringify(s.setup)) : {};
+    stav.room_id = s.room_id; 
+    stav.stinty = [];
+    
+    let max_cas_sec = stav.delka_zavodu_hod * 3600; 
+    let sim_cas = 0, idx_j = 0;
+    
+    // Safety counter to prevent infinite loops
+    let safety_breaker = 0; 
+
+    while (sim_cas < max_cas_sec && safety_breaker < 100) {
+        safety_breaker++;
         let jzd = stav.jezdci[idx_j]; 
-        let workingCas = jzd.cas > 0 ? jzd.cas : (stav.jezdci.find(x => x.cas > 0).cas || 120); 
-        let workingFuel = jzd.spotreba > 0 ? jzd.spotreba : (stav.jezdci.find(x => x.spotreba > 0).spotreba || 3.0);
-        let max_kola_palivo = Math.floor((Number(stav.auto_data.nadrz_l) - 1.5) / workingFuel);
-        let cas_na_stint = max_cas_sec - sim_cas; let t_pit = Number(stav.trat_data.pit_lane_loss_sec) + Number(stav.auto_data.cas_pneu_sec);
-        let max_kola_cas = Math.ceil((cas_na_stint - t_pit) / workingCas) + (stav.format_plus_kolo ? 1 : 0); if(max_kola_cas < 0) max_kola_cas = 0; 
-        let realna_kola = Math.min(max_kola_palivo, max_kola_cas); if (realna_kola <= 0) break;
+        
+        // Robust fallback for pace and fuel
+        let validPilot = stav.jezdci.find(x => x.cas > 0 && x.spotreba > 0) || {cas: 120, spotreba: 3.0};
+        let workingCas = (jzd.cas > 0) ? jzd.cas : validPilot.cas; 
+        let workingFuel = (jzd.spotreba > 0) ? jzd.spotreba : validPilot.spotreba;
+        
+        let nadrz = Number(stav.auto_data.nadrz_l) || 100;
+        let pitLoss = Number(stav.trat_data.pit_lane_loss_sec) || 25;
+        let tyreTime = Number(stav.auto_data.cas_pneu_sec) || 25;
+        let fuelSpeed = Number(stav.auto_data.rychlost_tankovani_l_za_s) || 3.0;
+
+        let max_kola_palivo = Math.floor((nadrz - 1.5) / workingFuel);
+        if (max_kola_palivo < 1) max_kola_palivo = 1; // Prevent 0 laps stint
+
+        let cas_na_stint = max_cas_sec - sim_cas; 
+        let t_pit = pitLoss + tyreTime;
+        
+        let max_kola_cas = Math.ceil((cas_na_stint - t_pit) / workingCas) + (stav.format_plus_kolo ? 1 : 0); 
+        if(max_kola_cas < 0) max_kola_cas = 0; 
+        
+        let realna_kola = Math.min(max_kola_palivo, max_kola_cas); 
+        
+        if (realna_kola <= 0) break; // Race is over
         
         let meni_pneu = true;
-        if (realna_kola < (max_kola_palivo / 2) && (sim_cas + (realna_kola * workingCas)) >= (max_cas_sec - 600)) { meni_pneu = false; }
+        // Logic to skip tyres on a short splash-and-dash at the end
+        if (realna_kola < (max_kola_palivo / 2) && (sim_cas + (realna_kola * workingCas)) >= (max_cas_sec - 600)) { 
+            meni_pneu = false; 
+        }
         
         stav.stinty.push({ jezdec_jmeno: jzd.jmeno, kola: realna_kola, meni_pneu: meni_pneu });
-        let tankovani_cas = (realna_kola * workingFuel) / Number(stav.auto_data.rychlost_tankovani_l_za_s);
-        let ztrata_pit = (sim_cas + (realna_kola * workingCas) < max_cas_sec) ? t_pit + tankovani_cas : 0; 
-        sim_cas += (realna_kola * workingCas) + ztrata_pit; idx_j = (idx_j + 1) % stav.jezdci.length;
+        
+        let tankovani_cas = (realna_kola * workingFuel) / fuelSpeed;
+        
+        // Add time to simulation. Only add pitstop time if it's not the final stint
+        let trvani_stintu = (realna_kola * workingCas);
+        let ztrata_pit = (sim_cas + trvani_stintu < max_cas_sec) ? (pitLoss + tankovani_cas + (meni_pneu ? tyreTime : 0)) : 0; 
+        
+        sim_cas += trvani_stintu + ztrata_pit; 
+        
+        // Move to next driver
+        idx_j = (idx_j + 1) % stav.jezdci.length;
     }
-    stav.isStrategyPreview = true; stav.isLiveMode = false;
-    db.ref('live_race').set(stav); ukazUpozorneni("Náhled strategie vygenerován.");
+    
+    stav.isStrategyPreview = true; 
+    stav.isLiveMode = false;
+    db.ref('live_race').set(stav); 
+    ukazUpozorneni("Náhled strategie vygenerován (Stintů: " + stav.stinty.length + ").");
 }
 
 function updateStintData(idx) { stav.stinty[idx].jezdec_jmeno = document.getElementById(`edit-stint-driver-${idx}`).value; stav.stinty[idx].meni_pneu = document.getElementById(`edit-stint-pneu-${idx}`).checked; db.ref('live_race/stinty').set(stav.stinty); }
