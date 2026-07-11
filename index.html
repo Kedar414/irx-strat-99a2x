@@ -540,6 +540,14 @@ function inicializujDatabazi() {
         if (data) {
             stav = data;
             
+            // OCHRANA PROTI FIREBASE PŘEVODU NA OBJEKTY!
+            if (stav.historie_kol && !Array.isArray(stav.historie_kol)) {
+                stav.historie_kol = Object.values(stav.historie_kol);
+            }
+            if (stav.stinty && !Array.isArray(stav.stinty)) {
+                stav.stinty = Object.values(stav.stinty);
+            }
+            
             if (stav.room_id && currentRoomId !== stav.room_id && (stav.isLiveMode || stav.isPracticeMode)) {
                 initMQTT(stav.room_id);
             }
@@ -862,6 +870,7 @@ function onMessageArrived(message) {
             }
 
             if (stav.isLiveMode) {
+                if(stav.historie_kol && !Array.isArray(stav.historie_kol)) { stav.historie_kol = Object.values(stav.historie_kol); }
                 if(!stav.historie_kol) stav.historie_kol = [];
                 let naseKolo = stav.historie_kol.length > 0 ? stav.historie_kol[stav.historie_kol.length - 1].kolo + 1 : 1;
                 
@@ -980,6 +989,18 @@ function generujStrategiiZRelace(sid) {
 function updateStintData(idx) { stav.stinty[idx].jezdec_jmeno = document.getElementById(`edit-stint-driver-${idx}`).value; stav.stinty[idx].meni_pneu = document.getElementById(`edit-stint-pneu-${idx}`).checked; db.ref('live_race/stinty').set(stav.stinty); }
 function zrusitVygenerovanouStrategii() { if(confirm("Opravdu zrušit tento náhled pro celý tým? Vracíme se do garáže.")) { db.ref('live_race').remove(); } }
 
+function zmenitLivePilotaStintu(index, newName) {
+    if (!stav.stinty) stav.stinty = [];
+    while (stav.stinty.length <= index) {
+        let defaultName = stav.jezdci && stav.jezdci.length > 0 ? stav.jezdci[stav.stinty.length % stav.jezdci.length].jmeno : "Pilot";
+        stav.stinty.push({ jezdec_jmeno: defaultName, kola: 0, meni_pneu: true });
+    }
+    stav.stinty[index].jezdec_jmeno = newName;
+    db.ref('live_race/stinty').set(stav.stinty);
+    prepocitejLiveZavodStrategii();
+    ukazUpozorneni(`Pilot pro stint ${index + 1} byl změněn na ${newName}.`);
+}
+
 // =========================================================
 // OVLÁDACÍ LOGIKA STRATEGIE PODLE SKUTEČNÉHO STAVU V ZÁVODĚ
 // =========================================================
@@ -1002,7 +1023,7 @@ function prepocitejLiveZavodStrategii() {
         // ROBUSTNÍ KONTROLA TYPŮ: Ošetření isPit z Pythonu (boolean, string i number)
         let isPitLap = (lap.isPit === true || lap.isPit === 1 || lap.isPit === "true" || lap.isPit === "1");
             
-        if (!isPitLap && lap.cas > 30 && lap.spotreba > 0.5) {
+        if (!isPitLap && lap.cas > 30 && lap.spotreba > 0) {
             if(!driverLaps[dName]) driverLaps[dName] = [];
             driverLaps[dName].push(lap);
         }
@@ -1103,8 +1124,8 @@ function prepocitejLiveZavodStrategii() {
         let t_end_str = getRealTimeStr(stav.start_time_str, current_race_time_offset + trvani_stintu);
         let timeLabel = stav.start_time_str ? `${t_start_str} - ${t_end_str}` : "";
         
-        let cardTitle = stav.isStrategyPreview ? `PLÁNOVANÝ STINT (${activeDriverName})` : `AKTUÁLNÍ STINT (${activeDriverName})`;
-        html += buildStintCardHtml(cardTitle, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, activePace.cas, kola_v_tomto_stintu * activePace.fuel, false, !stav.isStrategyPreview, timeLabel);
+        let cardTitle = stav.isStrategyPreview ? `PLÁNOVANÝ STINT` : `AKTUÁLNÍ STINT`;
+        html += buildStintCardHtml(cardTitle, activeDriverName, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, activePace.cas, kola_v_tomto_stintu * activePace.fuel, false, !stav.isStrategyPreview, timeLabel, currentStintIndex);
         
         current_race_time_offset += trvani_stintu; // Posun času pro další stint
     }
@@ -1152,7 +1173,7 @@ function prepocitejLiveZavodStrategii() {
         let t_end_str = getRealTimeStr(stav.start_time_str, current_race_time_offset + trvani_stintu);
         let timeLabel = stav.start_time_str ? `${t_start_str} - ${t_end_str}` : "";
         
-        html += buildStintCardHtml(`PLÁNOVANÝ STINT (${nextDName})`, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, nextPace.cas, kola_v_tomto_stintu * nextPace.fuel, meni_pneu, false, timeLabel);
+        html += buildStintCardHtml(`PLÁNOVANÝ STINT`, nextDName, stint_counter++, start_k, loop_kolo, kola_v_tomto_stintu, nextPace.cas, kola_v_tomto_stintu * nextPace.fuel, meni_pneu, false, timeLabel, futureIndex);
         
         current_race_time_offset += trvani_stintu; // Posun času pro další stint
 
@@ -1230,18 +1251,29 @@ function prepocitejLiveZavodStrategii() {
     }
 }
 
-function buildStintCardHtml(typ, cislo, start_k, konec_k, kola, avgCas, palivo, pneu, isCurrent, timeStr = "") {
+function buildStintCardHtml(typ, driverName, cislo, start_k, konec_k, kola, avgCas, palivo, pneu, isCurrent, timeStr = "", stintIndex = -1) {
     let borderCol = isCurrent ? "border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)] bg-slate-900/80" : "border-slate-800 bg-slate-900/50";
     let dotCol = isCurrent ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]";
     
     let timeHtml = timeStr ? `<span class="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded border border-blue-800/50 shadow-inner flex items-center gap-1">🕒 ${timeStr}</span>` : '';
+
+    let titleContent = `${typ} <span class="text-slate-400 font-normal ml-1">(${driverName})</span>`;
+    
+    // Pokud máme id stintu a seznam jezdců, přidáme dropdown výběr
+    if (stintIndex >= 0 && stav.jezdci && stav.jezdci.length > 0) {
+        let options = stav.jezdci.map(j => `<option value="${j.jmeno}" ${j.jmeno === driverName ? 'selected' : ''}>${j.jmeno}</option>`).join('');
+        titleContent = `${typ} 
+        <select onchange="zmenitLivePilotaStintu(${stintIndex}, this.value)" class="bg-slate-950 border border-slate-700 text-blue-400 rounded px-1 py-0.5 ml-2 text-xs outline-none focus:border-blue-500 font-bold">
+            ${options}
+        </select>`;
+    }
 
     return `
     <div class="relative pl-6 pb-4 border-l-2 border-slate-700 last:border-transparent last:pb-0">
         <div class="absolute w-4 h-4 rounded-full ${dotCol} -left-[9px] top-1"></div>
         <div class="border ${borderCol} rounded-lg p-3 shadow-md hover:bg-slate-800/40 transition-colors">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                <h4 class="text-xs font-bold text-slate-200">${typ}</h4>
+                <h4 class="text-xs font-bold text-slate-200 flex items-center">${titleContent}</h4>
                 <div class="flex flex-wrap gap-1 text-[10px] font-mono font-bold">
                     ${timeHtml}
                     <span class="bg-slate-950 px-2 py-0.5 rounded text-slate-400 border border-slate-800 shadow-inner">Kolo ${start_k} - ${konec_k}</span>
@@ -1259,22 +1291,63 @@ function buildStintCardHtml(typ, cislo, start_k, konec_k, kola, avgCas, palivo, 
 
 function zamkniASpustZavod() { stav.isLiveMode = true; stav.isStrategyPreview = false; stav.historie_kol = []; stav.palivo_v_aute = Number(stav.auto_data.nadrz_l); db.ref('live_race').set(stav); ukazUpozorneni("Live Závod spuštěn pro všechny klienty!"); }
 function aktualizujLiveBudiky() {
-    if(!stav.historie_kol) stav.historie_kol = []; let ujeta_kola = stav.historie_kol.length;
+    if(stav.historie_kol && !Array.isArray(stav.historie_kol)) { stav.historie_kol = Object.values(stav.historie_kol); }
+    if(!stav.historie_kol) stav.historie_kol = []; 
+    let ujeta_kola = stav.historie_kol.length;
     let textKola = document.getElementById('gauge-laps').innerText; let parts = textKola.split('/'); if(parts.length === 2) { document.getElementById('gauge-laps').innerText = `${ujeta_kola} / ${parts[1].trim()}`; }
 }
 function zapisLiveKolo() {
-    let m = parseInt(document.getElementById('live-lap-min').value) || 0; let s = parseInt(document.getElementById('live-lap-sec').value) || 0; let ms = parseInt(document.getElementById('live-lap-ms').value) || 0; let cas = (m*60) + s + (ms/1000); let fuel = parseFloat(document.getElementById('live-lap-fuel').value) || 0;
-    if(!stav.historie_kol) stav.historie_kol = []; let koloNum = parseInt(document.getElementById('live-lap-num').value) || (stav.historie_kol.length + 1);
-    let note = document.getElementById('live-manual-note').value; let isPit = document.getElementById('live-is-pit').checked;
+    let m = parseInt(document.getElementById('live-lap-min').value) || 0; 
+    let s = parseInt(document.getElementById('live-lap-sec').value) || 0; 
+    let ms = parseInt(document.getElementById('live-lap-ms').value) || 0; 
+    let cas = (m*60) + s + (ms/1000); 
+    let fuel = parseFloat(document.getElementById('live-lap-fuel').value) || 0;
+
+    // Zabezpečení proti Firebase objektům
+    if(stav.historie_kol && !Array.isArray(stav.historie_kol)) {
+        stav.historie_kol = Object.values(stav.historie_kol);
+    }
+    if(!stav.historie_kol) stav.historie_kol = []; 
+    
+    let koloNum = parseInt(document.getElementById('live-lap-num').value) || (stav.historie_kol.length > 0 ? stav.historie_kol[stav.historie_kol.length-1].kolo + 1 : 1);
+    let note = document.getElementById('live-manual-note').value; 
+    let isPit = document.getElementById('live-is-pit').checked;
+    
     if(cas <= 0) { ukazUpozorneni("Zadejte platný čas kola.", "error"); return; }
+    if(fuel <= 0 && !isPit) { ukazUpozorneni("Kolo nemá zadanou spotřebu! Nebude započítáno do kalibrace.", "error"); }
+    
     let existingIndex = stav.historie_kol.findIndex(k => k.kolo === koloNum);
-    if(existingIndex !== -1) { stav.historie_kol[existingIndex] = {kolo: koloNum, cas: cas, spotreba: fuel, isPit: isPit, note: note}; } else { stav.historie_kol.push({kolo: koloNum, cas: cas, spotreba: fuel, isPit: isPit, note: note}); stav.historie_kol.sort((a,b) => a.kolo - b.kolo); }
-    stav.palivo_v_aute -= fuel; if(stav.palivo_v_aute < 0) stav.palivo_v_aute = 0; if(isPit) stav.palivo_v_aute = Number(stav.auto_data.nadrz_l); 
-    db.ref('live_race/historie_kol').set(stav.historie_kol); db.ref('live_race/palivo_v_aute').set(stav.palivo_v_aute);
-    document.getElementById('live-lap-min').value = ''; document.getElementById('live-lap-sec').value = ''; document.getElementById('live-lap-ms').value = ''; document.getElementById('live-lap-fuel').value = ''; document.getElementById('live-lap-num').value = stav.historie_kol[stav.historie_kol.length-1].kolo + 1; document.getElementById('live-manual-note').value = ''; document.getElementById('live-is-pit').checked = false;
+    if(existingIndex !== -1) { 
+        stav.historie_kol[existingIndex] = {kolo: koloNum, cas: cas, spotreba: fuel, isPit: isPit, note: note}; 
+    } else { 
+        stav.historie_kol.push({kolo: koloNum, cas: cas, spotreba: fuel, isPit: isPit, note: note}); 
+        stav.historie_kol.sort((a,b) => a.kolo - b.kolo); 
+    }
+    
+    stav.palivo_v_aute -= fuel; 
+    if(stav.palivo_v_aute < 0) stav.palivo_v_aute = 0; 
+    if(isPit) stav.palivo_v_aute = Number(stav.auto_data.nadrz_l); 
+    
+    db.ref('live_race/historie_kol').set(stav.historie_kol); 
+    db.ref('live_race/palivo_v_aute').set(stav.palivo_v_aute);
+    
+    document.getElementById('live-lap-min').value = ''; 
+    document.getElementById('live-lap-sec').value = ''; 
+    document.getElementById('live-lap-ms').value = ''; 
+    document.getElementById('live-lap-fuel').value = ''; 
+    document.getElementById('live-lap-num').value = stav.historie_kol[stav.historie_kol.length-1].kolo + 1; 
+    document.getElementById('live-manual-note').value = ''; 
+    document.getElementById('live-is-pit').checked = false;
+
+    // Okamžitý refresh UI pro zapsání
+    prepocitejLiveZavodStrategii();
+    vykresliHistoriiZavodu();
+    aktualizujLiveBudiky();
 }
 function vykresliHistoriiZavodu() {
-    let tbody = document.getElementById('live-laps-history-tbody'); let html = ''; if(!stav.historie_kol) stav.historie_kol = [];
+    let tbody = document.getElementById('live-laps-history-tbody'); let html = ''; 
+    if(stav.historie_kol && !Array.isArray(stav.historie_kol)) { stav.historie_kol = Object.values(stav.historie_kol); }
+    if(!stav.historie_kol) stav.historie_kol = [];
     
     for (let i = stav.historie_kol.length - 1; i >= 0; i--) {
         let k = stav.historie_kol[i];
@@ -1303,6 +1376,9 @@ function vykresliHistoriiZavodu() {
 }
 
 function smazatLiveKolo(index) {
+    if(stav.historie_kol && !Array.isArray(stav.historie_kol)) {
+        stav.historie_kol = Object.values(stav.historie_kol);
+    }
     if(confirm("Opravdu smazat toto kolo z historie?")) {
         let smazano = stav.historie_kol.splice(index, 1)[0];
         if(confirm("Vrátit spotřebované palivo (" + smazano.spotreba.toFixed(2) + " L) zpět do nádrže?")) {
@@ -1311,7 +1387,10 @@ function smazatLiveKolo(index) {
         }
         db.ref('live_race/historie_kol').set(stav.historie_kol);
         db.ref('live_race/palivo_v_aute').set(stav.palivo_v_aute);
-        vykresliHistoriiZavodu(); aktualizujLiveBudiky();
+        
+        prepocitejLiveZavodStrategii();
+        vykresliHistoriiZavodu(); 
+        aktualizujLiveBudiky();
     }
 }
 
